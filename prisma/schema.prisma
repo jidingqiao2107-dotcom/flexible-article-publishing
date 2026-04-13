@@ -1,0 +1,800 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ActorType {
+  human_author
+  ai
+  system
+  internal_reviewer
+  external_reviewer
+}
+
+enum ClaimStatus {
+  draft
+  suggested
+  needs_revision
+  approved
+  publication_ready
+  blocked
+}
+
+enum ClaimType {
+  observation
+  interpretation
+  mechanism
+  hypothesis
+  conclusion
+  background
+}
+
+enum StrengthLevel {
+  weak
+  moderate
+  strong
+  exploratory
+}
+
+enum LinkStatus {
+  proposed
+  confirmed
+  rejected
+}
+
+enum EvidenceType {
+  figure
+  dataset
+  table
+  method
+  citation
+  note
+  observation
+}
+
+enum ApprovalType {
+  claim_approval
+  claim_evidence_approval
+  claim_method_approval
+  claim_limitation_approval
+  pre_export_intent_confirmation
+  ai_edit_acceptance
+  review_resolution
+}
+
+enum MembershipRole {
+  owner
+  corresponding_author
+  coauthor
+}
+
+enum SourceClassification {
+  human
+  ai_suggestion
+  system
+}
+
+enum ReviewSeverity {
+  info
+  warning
+  blocking
+}
+
+enum ReviewResolutionStatus {
+  open
+  acknowledged
+  resolved
+  dismissed_by_author
+}
+
+enum ExportStatus {
+  draft
+  blocked
+  ready
+  generated
+  superseded
+}
+
+enum ValidityScoreBand {
+  insufficient
+  weak
+  moderate
+  strong
+  high
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  type        String       @default("project")
+  name        String
+  description String?
+  createdBy   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  manuscripts Manuscript[]
+  authors     Author[]
+  members     ProjectMember[]
+  auditLogs   AuditLog[]
+}
+
+model Manuscript {
+  id                     String              @id @default(cuid())
+  type                   String              @default("manuscript")
+  projectId              String
+  project                Project             @relation(fields: [projectId], references: [id])
+  title                  String
+  shortTitle             String?
+  abstract               String?
+  keywords               String[]
+  articleType            String?
+  submissionStatus       String              @default("draft")
+  acknowledgements       String?
+  license                String?
+  aiAssistanceDisclosure String?
+  richMetadata           Json?
+  createdBy              String
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  sections               Section[]
+  auditLogs              AuditLog[]
+  authors                ManuscriptAuthor[]
+  members                ManuscriptMember[]
+  claims                 Claim[]
+  evidence               Evidence[]
+  figures                Figure[]
+  methodBlocks           MethodBlock[]
+  citations              Citation[]
+  limitations            Limitation[]
+  assets                 Asset[]
+  datasets               Dataset[]
+  softwareArtifacts      SoftwareArtifact[]
+  supplementaryItems     SupplementaryItem[]
+  reviewComments         ReviewComment[]
+  authorResponses        AuthorResponse[]
+  versions               Version[]
+  approvalEvents         ApprovalEvent[]
+  aiReviewResults        AIReviewResult[]
+  validityAssessments    ClaimValidityAssessment[]
+  provenanceRecords      ProvenanceRecord[]
+  exportPackages         ExportPackage[]
+  fundingInfo            FundingInfo[]
+  conflicts              ConflictOfInterest[]
+  ethicsStatements       EthicsStatement[]
+  dataAvailability       DataAvailability?
+  codeAvailability       CodeAvailability?
+  identifierRecords      IdentifierRecord[]
+  submissionTargets      SubmissionTarget[]
+}
+
+model Section {
+  id             String     @id @default(cuid())
+  type           String     @default("section")
+  manuscriptId   String
+  manuscript     Manuscript @relation(fields: [manuscriptId], references: [id])
+  parentSectionId String?
+  title          String
+  orderIndex     Int
+  objectRefs     Json
+  status         String     @default("draft")
+  createdBy      String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([manuscriptId])
+}
+
+model Claim {
+  id                 String                @id @default(cuid())
+  type               String                @default("claim")
+  manuscriptId       String
+  manuscript         Manuscript            @relation(fields: [manuscriptId], references: [id])
+  text               String
+  claimType          ClaimType
+  strengthLevel      StrengthLevel
+  status             ClaimStatus           @default(draft)
+  authorApproved     Boolean               @default(false)
+  publicationReady   Boolean               @default(false)
+  createdBy          String
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  evidenceLinks      ClaimEvidenceLink[]
+  figureLinks        ClaimFigureLink[]
+  methodLinks        ClaimMethodLink[]
+  citationLinks      ClaimCitationLink[]
+  limitationLinks    ClaimLimitationLink[]
+  validityAssessments ClaimValidityAssessment[]
+
+  @@index([manuscriptId])
+  @@index([status])
+}
+
+model Evidence {
+  id              String              @id @default(cuid())
+  type            String              @default("evidence")
+  manuscriptId    String
+  manuscript      Manuscript          @relation(fields: [manuscriptId], references: [id])
+  evidenceType    EvidenceType
+  summary         String
+  confidenceNotes String?
+  createdBy       String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  claimLinks      ClaimEvidenceLink[]
+  assetLinks      EvidenceAssetLink[]
+
+  @@index([manuscriptId])
+}
+
+model Figure {
+  id              String            @id @default(cuid())
+  type            String            @default("figure")
+  manuscriptId    String
+  manuscript      Manuscript        @relation(fields: [manuscriptId], references: [id])
+  figureNumber    String?
+  title           String
+  caption         String
+  panelStructure  Json?
+  rawDataLinks    Json?
+  status          String            @default("draft")
+  createdBy       String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  claimLinks      ClaimFigureLink[]
+
+  @@index([manuscriptId])
+}
+
+model MethodBlock {
+  id                   String            @id @default(cuid())
+  type                 String            @default("method_block")
+  manuscriptId         String
+  manuscript           Manuscript        @relation(fields: [manuscriptId], references: [id])
+  title                String
+  content              String
+  protocolType         String?
+  reproducibilityNotes String?
+  status               String            @default("draft")
+  createdBy            String
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  claimLinks           ClaimMethodLink[]
+
+  @@index([manuscriptId])
+}
+
+model Citation {
+  id           String              @id @default(cuid())
+  type         String              @default("citation")
+  manuscriptId String
+  manuscript   Manuscript          @relation(fields: [manuscriptId], references: [id])
+  citationKey  String
+  doi          String?
+  title        String
+  authors      Json
+  journal      String?
+  year         Int?
+  volume       String?
+  issue        String?
+  pages        String?
+  url          String?
+  createdBy    String
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  claimLinks   ClaimCitationLink[]
+
+  @@index([manuscriptId])
+  @@index([citationKey])
+}
+
+model Limitation {
+  id                   String                @id @default(cuid())
+  type                 String                @default("limitation")
+  manuscriptId         String
+  manuscript           Manuscript            @relation(fields: [manuscriptId], references: [id])
+  text                 String
+  scope                String?
+  severityOrImportance String?
+  status               String                @default("draft")
+  createdBy            String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  claimLinks           ClaimLimitationLink[]
+
+  @@index([manuscriptId])
+}
+
+model ClaimEvidenceLink {
+  id          String     @id @default(cuid())
+  claimId     String
+  claim       Claim      @relation(fields: [claimId], references: [id])
+  evidenceId  String
+  evidence    Evidence   @relation(fields: [evidenceId], references: [id])
+  status      LinkStatus @default(proposed)
+  confirmedBy String?
+  confirmedAt DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@unique([claimId, evidenceId])
+  @@index([evidenceId])
+}
+
+model ClaimFigureLink {
+  id        String     @id @default(cuid())
+  claimId   String
+  claim     Claim      @relation(fields: [claimId], references: [id])
+  figureId  String
+  figure    Figure     @relation(fields: [figureId], references: [id])
+  status    LinkStatus @default(proposed)
+  confirmedBy String?
+  confirmedAt DateTime?
+  createdAt DateTime   @default(now())
+
+  @@unique([claimId, figureId])
+  @@index([figureId])
+}
+
+model ClaimMethodLink {
+  id            String      @id @default(cuid())
+  claimId       String
+  claim         Claim       @relation(fields: [claimId], references: [id])
+  methodBlockId String
+  methodBlock   MethodBlock @relation(fields: [methodBlockId], references: [id])
+  status        LinkStatus  @default(proposed)
+  confirmedBy   String?
+  confirmedAt   DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@unique([claimId, methodBlockId])
+  @@index([methodBlockId])
+}
+
+model ClaimCitationLink {
+  id         String     @id @default(cuid())
+  claimId    String
+  claim      Claim      @relation(fields: [claimId], references: [id])
+  citationId String
+  citation   Citation   @relation(fields: [citationId], references: [id])
+  status     LinkStatus @default(proposed)
+  confirmedBy String?
+  confirmedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@unique([claimId, citationId])
+  @@index([citationId])
+}
+
+model ClaimLimitationLink {
+  id           String     @id @default(cuid())
+  claimId      String
+  claim        Claim      @relation(fields: [claimId], references: [id])
+  limitationId String
+  limitation   Limitation @relation(fields: [limitationId], references: [id])
+  status       LinkStatus @default(proposed)
+  confirmedBy  String?
+  confirmedAt  DateTime?
+  createdAt    DateTime   @default(now())
+
+  @@unique([claimId, limitationId])
+  @@index([limitationId])
+}
+
+model Asset {
+  id               String              @id @default(cuid())
+  type             String              @default("asset")
+  manuscriptId     String
+  manuscript       Manuscript          @relation(fields: [manuscriptId], references: [id])
+  label            String
+  originalFilename String
+  mimeType         String
+  storageKey       String
+  checksum         String?
+  sizeBytes        Int?
+  createdBy        String
+  createdAt        DateTime            @default(now())
+  evidenceLinks    EvidenceAssetLink[]
+}
+
+model EvidenceAssetLink {
+  id         String   @id @default(cuid())
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id])
+  assetId    String
+  asset      Asset    @relation(fields: [assetId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([evidenceId, assetId])
+}
+
+model ReviewComment {
+  id               String                 @id @default(cuid())
+  type             String                 @default("review_comment")
+  manuscriptId     String
+  manuscript       Manuscript             @relation(fields: [manuscriptId], references: [id])
+  commenterType    ActorType
+  commentText      String
+  linkedEntityIds  String[]
+  severity         ReviewSeverity
+  resolutionStatus ReviewResolutionStatus @default(open)
+  createdAt        DateTime               @default(now())
+}
+
+model AuthorResponse {
+  id                    String     @id @default(cuid())
+  type                  String     @default("author_response")
+  manuscriptId          String
+  manuscript            Manuscript @relation(fields: [manuscriptId], references: [id])
+  responseText          String
+  linkedReviewCommentId String
+  linkedEntityIds       String[]
+  responseStatus        String     @default("draft")
+  createdBy             String
+  createdAt             DateTime   @default(now())
+}
+
+model Version {
+  id              String      @id @default(cuid())
+  type            String      @default("version")
+  manuscriptId    String
+  manuscript      Manuscript  @relation(fields: [manuscriptId], references: [id])
+  parentVersionId String?
+  createdBy       String
+  createdAt       DateTime    @default(now())
+  changeSummary   String
+  snapshotPointer String
+  exportPackages  ExportPackage[]
+}
+
+model ApprovalEvent {
+  id               String       @id @default(cuid())
+  type             String       @default("approval_event")
+  manuscriptId     String
+  manuscript       Manuscript   @relation(fields: [manuscriptId], references: [id])
+  approvalType     ApprovalType
+  actorType        ActorType
+  actorId          String
+  sourceClassification SourceClassification @default(human)
+  targetEntityType String
+  targetEntityId   String
+  targetVersionId  String?
+  targetSnapshotRef String?
+  approved         Boolean
+  notes            String?
+  createdAt        DateTime     @default(now())
+
+  @@index([manuscriptId])
+  @@index([targetEntityType, targetEntityId])
+}
+
+model AIReviewResult {
+  id               String                 @id @default(cuid())
+  type             String                 @default("ai_review_result")
+  manuscriptId     String
+  manuscript       Manuscript             @relation(fields: [manuscriptId], references: [id])
+  ruleId           String
+  severity         ReviewSeverity
+  message          String
+  linkedEntityIds  String[]
+  recommendedAction String
+  resolutionStatus ReviewResolutionStatus @default(open)
+  modelActionType  String                  @default("deterministic_rule_check")
+  createdAt        DateTime                @default(now())
+
+  @@index([manuscriptId])
+  @@index([ruleId])
+}
+
+model ClaimValidityAssessment {
+  id                    String           @id @default(cuid())
+  type                  String           @default("claim_validity_assessment")
+  manuscriptId          String
+  manuscript            Manuscript       @relation(fields: [manuscriptId], references: [id])
+  claimId               String
+  claim                 Claim            @relation(fields: [claimId], references: [id])
+  overallValidityScore  Int
+  scoreBand             ValidityScoreBand
+  summaryForUser        String
+  majorConcerns         String[]
+  suggestedNextActions  String[]
+  biggestScoreDrivers   String[]
+  expandableDimensions  Json
+  modelConfidence       Float
+  generatedAt           DateTime         @default(now())
+  sourceMode            String           @default("deterministic_validity_contract_v1")
+  basedOnLinkedObjectIds String[]
+  basedOnSnapshotRef    String
+  basedOnSnapshot       Json
+
+  @@index([manuscriptId, claimId])
+  @@index([claimId, generatedAt])
+}
+
+model ProvenanceRecord {
+  id               String     @id @default(cuid())
+  type             String     @default("provenance_record")
+  manuscriptId     String
+  manuscript       Manuscript @relation(fields: [manuscriptId], references: [id])
+  targetEntityType String
+  targetEntityId   String
+  sourceObjectIds  String[]
+  modelActionType  String?
+  preVersionId     String?
+  postVersionId    String?
+  authorApprovalStatus String @default("pending")
+  createdAt        DateTime   @default(now())
+}
+
+model AuditLog {
+  id               String    @id @default(cuid())
+  type             String    @default("audit_log")
+  projectId        String?
+  project          Project?  @relation(fields: [projectId], references: [id])
+  manuscriptId     String?
+  manuscript       Manuscript? @relation(fields: [manuscriptId], references: [id])
+  actorType        ActorType
+  actorId          String
+  sourceClassification SourceClassification @default(system)
+  action           String
+  targetEntityType String
+  targetEntityId   String
+  targetVersionId  String?
+  targetSnapshotRef String?
+  beforeSnapshot   Json?
+  afterSnapshot    Json?
+  context          Json?
+  createdAt        DateTime  @default(now())
+
+  @@index([manuscriptId])
+  @@index([targetEntityType, targetEntityId])
+}
+
+model ExportPackage {
+  id                  String       @id @default(cuid())
+  type                String       @default("export_package")
+  manuscriptId         String
+  manuscript           Manuscript   @relation(fields: [manuscriptId], references: [id])
+  exportType           String
+  status               ExportStatus @default(draft)
+  versionId            String?
+  version              Version?     @relation(fields: [versionId], references: [id])
+  finalApprovalEventId String?
+  snapshotPointer      String?
+  artifactPointer      String?
+  readinessReport      Json?
+  createdBy            String
+  createdAt            DateTime     @default(now())
+}
+
+model Author {
+  id          String             @id @default(cuid())
+  type        String             @default("author")
+  projectId   String
+  project     Project            @relation(fields: [projectId], references: [id])
+  displayName String
+  email       String?
+  orcid       String?
+  affiliations AuthorAffiliation[]
+  manuscripts ManuscriptAuthor[]
+  projectMemberships ProjectMember[]
+  manuscriptMemberships ManuscriptMember[]
+  sessions    ActorSession[]
+}
+
+model ActorSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  authorId  String
+  author    Author   @relation(fields: [authorId], references: [id])
+  label     String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+  revokedAt DateTime?
+
+  @@index([authorId, revokedAt])
+}
+
+model ProjectMember {
+  id        String         @id @default(cuid())
+  projectId String
+  project   Project        @relation(fields: [projectId], references: [id])
+  authorId  String
+  author    Author         @relation(fields: [authorId], references: [id])
+  role      MembershipRole
+  addedBy   String?
+  createdAt DateTime       @default(now())
+
+  @@unique([projectId, authorId])
+  @@index([projectId, role])
+}
+
+model Affiliation {
+  id        String              @id @default(cuid())
+  type      String              @default("affiliation")
+  name      String
+  address   String?
+  country   String?
+  authors   AuthorAffiliation[]
+}
+
+model AuthorAffiliation {
+  id            String      @id @default(cuid())
+  authorId      String
+  author        Author      @relation(fields: [authorId], references: [id])
+  affiliationId String
+  affiliation   Affiliation @relation(fields: [affiliationId], references: [id])
+
+  @@unique([authorId, affiliationId])
+}
+
+model ManuscriptAuthor {
+  id                  String     @id @default(cuid())
+  manuscriptId         String
+  manuscript           Manuscript @relation(fields: [manuscriptId], references: [id])
+  authorId             String
+  author               Author     @relation(fields: [authorId], references: [id])
+  contributorRoles     String[]
+  isCorrespondingAuthor Boolean   @default(false)
+  orderIndex           Int
+
+  @@unique([manuscriptId, authorId])
+}
+
+model ManuscriptMember {
+  id           String         @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript     @relation(fields: [manuscriptId], references: [id])
+  authorId     String
+  author       Author         @relation(fields: [authorId], references: [id])
+  role         MembershipRole
+  addedBy      String?
+  createdAt    DateTime       @default(now())
+
+  @@unique([manuscriptId, authorId])
+  @@index([manuscriptId, role])
+}
+
+model Dataset {
+  id           String     @id @default(cuid())
+  type         String     @default("dataset")
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id])
+  title        String
+  repository   String?
+  identifier   String?
+  availability String?
+  createdAt    DateTime   @default(now())
+}
+
+model SoftwareArtifact {
+  id           String     @id @default(cuid())
+  type         String     @default("software_artifact")
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id])
+  name         String
+  repositoryUrl String?
+  version      String?
+  license      String?
+  createdAt    DateTime   @default(now())
+}
+
+model SupplementaryItem {
+  id           String     @id @default(cuid())
+  type         String     @default("supplementary_item")
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id])
+  label        String
+  title        String
+  assetId      String?
+  mapping      Json?
+  createdAt    DateTime   @default(now())
+}
+
+model FundingInfo {
+  id           String     @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id])
+  funderName   String
+  grantNumber  String?
+  recipientAuthorId String?
+}
+
+model ConflictOfInterest {
+  id           String     @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id])
+  statement    String
+  authorId     String?
+}
+
+model EthicsStatement {
+  id           String     @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id])
+  statement    String
+  approvalIdentifier String?
+}
+
+model DataAvailability {
+  id           String     @id @default(cuid())
+  manuscriptId String     @unique
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id])
+  statement    String
+}
+
+model CodeAvailability {
+  id           String     @id @default(cuid())
+  manuscriptId String     @unique
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id])
+  statement    String
+}
+
+model IdentifierRecord {
+  id           String     @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id])
+  identifierType String
+  value        String
+  url          String?
+}
+
+model SubmissionTarget {
+  id           String     @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id])
+  journalName  String
+  articleType  String?
+  templateId   String?
+  status       String     @default("draft")
+}
+
+model JournalTemplate {
+  id          String   @id @default(cuid())
+  type        String   @default("journal_template")
+  journalName String
+  templateVersion String?
+  rules       Json
+  createdAt   DateTime @default(now())
+}
+
+model TaskCenterItem {
+  id             String                  @id @default(cuid())
+  externalId     String                  @unique
+  source         String                  @default("github")
+  eventType      String
+  itemType       String
+  status         String
+  priority       String                  @default("medium")
+  repository     String
+  title          String
+  url            String?
+  branch         String?
+  actor          String?
+  summary        String?
+  risk           String?
+  metadata       Json?
+  lastDeliveryId String?
+  deliveries     GitHubWebhookDelivery[]
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([repository, status])
+  @@index([source, eventType])
+  @@index([updatedAt])
+}
+
+model GitHubWebhookDelivery {
+  id               String          @id
+  eventType        String
+  repository       String?
+  action           String?
+  taskCenterItemId String?
+  taskCenterItem   TaskCenterItem? @relation(fields: [taskCenterItemId], references: [id])
+  processedAt      DateTime        @default(now())
+
+  @@index([repository])
+  @@index([eventType])
+  @@index([processedAt])
+}

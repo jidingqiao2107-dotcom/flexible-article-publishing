@@ -1,0 +1,44 @@
+{
+  "name": "route-a-authoring-saas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Structured research-object authoring SaaS MVP scaffold.",
+  "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": ">=20.9.0 <21",
+    "npm": ">=10.8.2 <11"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "postinstall": "node scripts/with-local-env.mjs prisma generate",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit --incremental false -p tsconfig.typecheck.json",
+    "lint": "tsc --noEmit --incremental false -p tsconfig.typecheck.json",
+    "test": "vitest run",
+    "test:integration": "node scripts/with-test-database-url.mjs vitest run src/persistence/prisma-workflow-store.integration.ts",
+    "test:watch": "vitest",
+    "db:up": "docker compose up -d postgres-test",
+    "db:down": "docker compose down -v",
+    "db:test:push": "node scripts/with-test-database-url.mjs prisma db push",
+    "validate:persistence": "npm run db:test:push && npm run test:integration",
+    "prisma:generate": "node scripts/with-local-env.mjs prisma generate",
+    "prisma:migrate": "node scripts/with-local-env.mjs prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "5.22.0",
+    "next": "15.5.14",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.0",
+    "@types/react": "19.1.12",
+    "@types/react-dom": "19.1.9",
+    "cross-env": "7.0.3",
+    "prisma": "5.22.0",
+    "typescript": "5.5.4",
+    "vitest": "4.1.3"
+  }
+}

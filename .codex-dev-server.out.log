@@ -1,0 +1,20 @@
+   ▲ Next.js 15.5.14
+   - Local:        http://localhost:3000
+   - Network:      http://141.14.234.143:3000
+
+ ✓ Starting...
+ ✓ Ready in 3.9s
+ ○ Compiling / ...
+ ✓ Compiled / in 4.2s (537 modules)
+ GET / 200 in 4633ms
+ ○ Compiling /projects ...
+ ✓ Compiled /projects in 516ms (525 modules)
+ GET /projects 200 in 656ms
+ ✓ Compiled /workspace in 180ms (530 modules)
+ GET /workspace 200 in 273ms
+ ✓ Compiled /api/projects in 342ms (552 modules)
+ GET /api/projects 500 in 708ms
+ ✓ Compiled /api/manuscript-view in 197ms (554 modules)
+ GET /api/manuscript-view 500 in 317ms
+ ✓ Compiled in 30ms
+ ✓ Compiled in 119ms (213 modules)

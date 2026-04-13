@@ -1,0 +1,219 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Route A Task Center API",
+    "version": "0.1.0",
+    "description": "Read-only API for a manager GPT to inspect GitHub-driven task center state."
+  },
+  "servers": [
+    {
+      "url": "https://YOUR-DEPLOYMENT-URL"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/task-center": {
+      "get": {
+        "operationId": "listTaskCenterItems",
+        "summary": "List recent task center items",
+        "parameters": [
+          {
+            "name": "repository",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "owner/repo"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "awaiting_review",
+                "in_progress",
+                "approved",
+                "changes_requested",
+                "reviewed",
+                "failed",
+                "cancelled",
+                "done",
+                "unknown"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent task center items.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TaskCenterItem"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task-center/{id}": {
+      "get": {
+        "operationId": "getTaskCenterItem",
+        "summary": "Get one task center item by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A task center item.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "item": {
+                      "$ref": "#/components/schemas/TaskCenterItem"
+                    }
+                  },
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task center item was not found."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "TaskCenterItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "github"
+            ]
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "itemType": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "repository": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string"
+          },
+          "metadata": {},
+          "lastDeliveryId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "externalId",
+          "source",
+          "eventType",
+          "itemType",
+          "status",
+          "priority",
+          "repository",
+          "title",
+          "createdAt",
+          "updatedAt"
+        ]
+      }
+    }
+  }
+}

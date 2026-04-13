@@ -1,0 +1,52 @@
+Error [PrismaClientInitializationError]: 
+Invalid `prisma.project.findMany()` invocation:
+
+
+error: Environment variable not found: DATABASE_URL.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider = "postgresql"
+ 7 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (-->  schema.prisma:7)
+    at async listProjects (src\persistence\prisma-workflow-store.ts:247:19)
+    at async GET (src\app\api\projects\route.ts:12:40)
+  245 |
+  246 | export async function listProjects(): Promise<Project[]> {
+> 247 |   const records = await prisma.project.findMany({ orderBy: { createdAt: "desc" } });
+      |                   ^
+  248 |   return records.map(toDomainProject);
+  249 | }
+  250 | {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+Error [PrismaClientInitializationError]: 
+Invalid `prisma.manuscript.findFirst()` invocation:
+
+
+error: Environment variable not found: DATABASE_URL.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider = "postgresql"
+ 7 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (-->  schema.prisma:7)
+    at async getActiveManuscriptId (src\persistence\prisma-workflow-store.ts:234:22)
+    at async getResearchObjectGraph (src\persistence\prisma-workflow-store.ts:280:14)
+    at async getStructuredManuscriptView (src\persistence\prisma-workflow-store.ts:766:17)
+    at async GET (src\app\api\manuscript-view\route.ts:6:28)
+  232 |   if (manuscriptId) return manuscriptId;
+  233 |
+> 234 |   const manuscript = await prisma.manuscript.findFirst({
+      |                      ^
+  235 |     orderBy: { createdAt: "desc" },
+  236 |     select: { id: true }
+  237 |   }); {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}

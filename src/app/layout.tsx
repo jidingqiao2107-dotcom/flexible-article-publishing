@@ -13,9 +13,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body>
         <main className="shell">
           <nav className="nav" aria-label="Primary navigation">
-            <a href="/">Route A Authoring</a>
+            <a href="/">Route A Research Studio</a>
             <span>
-              <a href="/projects">Projects</a> | <a href="/workspace">Author Workspace</a> |{" "}
+              <a href="/research">Research Studio</a> | <a href="/projects">Projects</a> | <a href="/workspace">Author Workspace</a> |{" "}
               <a href="/qa">Internal QA</a>
             </span>
           </nav>

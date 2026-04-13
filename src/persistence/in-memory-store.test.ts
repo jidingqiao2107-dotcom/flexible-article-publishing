@@ -35,8 +35,6 @@ describe("MVP structured authoring workflow", () => {
     });
     const claim = createClaim({
       text: "Treatment A reduced marker B in the study cohort.",
-      claimType: "observation",
-      strengthLevel: "moderate",
       createdBy: author.id
     });
     const evidence = createEvidence({
@@ -112,4 +110,3 @@ describe("MVP structured authoring workflow", () => {
     });
   });
 });
-

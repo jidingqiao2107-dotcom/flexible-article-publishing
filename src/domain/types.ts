@@ -36,6 +36,9 @@ export type LinkStatus = "proposed" | "confirmed" | "rejected";
 export type ReviewSeverity = "info" | "warning" | "blocking";
 export type ValidityScoreBand = "insufficient" | "weak" | "moderate" | "strong" | "high";
 export type ClaimValidityFreshnessStatus = "current" | "partially_stale" | "stale";
+export type DiscussionRequestedMode = "auto" | "deterministic" | "llm";
+export type DiscussionSourceMode = "deterministic_discussion_contract_v1" | "llm_openai_responses_v1";
+export type ClaimFramingSourceMode = "deterministic_claim_framing_v1" | "llm_claim_framing_v1";
 export type ClaimTrustLifecycleState =
   | "draft"
   | "under_review"
@@ -439,6 +442,7 @@ export type ResearchObjectGraph = {
   manuscriptMembers?: ManuscriptMember[];
   aiReviewResults: AIReviewResult[];
   validityAssessments?: ClaimValidityAssessment[];
+  claimFramingAssessments?: ClaimFramingAssessment[];
   claimTrustReadiness?: ClaimTrustReadiness[];
   datasets?: Array<{ id: EntityId; title: string }>;
   softwareArtifacts?: Array<{ id: EntityId; name: string }>;
@@ -543,10 +547,92 @@ export type GroundedDiscussionAnswer = {
     | "claim_comparison"
     | "results_paragraph"
     | "conservative_rewrite"
+    | "contradiction_tension"
     | "unsupported_question";
   question: string;
   answer: string;
+  sourceMode: DiscussionSourceMode;
+  fallbackReason?: string;
+  focus: {
+    scope: "project" | "claim" | "comparison";
+    primaryClaimId?: EntityId;
+    comparisonClaimId?: EntityId;
+  };
   referencedClaimIds: EntityId[];
+  usedMemoryObjectIds: EntityId[];
   groundingNotes: string[];
   suggestedFollowUps: string[];
+  groundedContext: {
+    claims: Array<{
+      claimId: EntityId;
+      manuscriptId: EntityId;
+      manuscriptTitle: string;
+      claimText: string;
+      claimType: ClaimType;
+      strengthLevel: StrengthLevel;
+      validityScore?: number;
+      validityBand?: ValidityScoreBand;
+      trustLifecycleState: ClaimTrustLifecycleState;
+      supportCounts: {
+        evidence: number;
+        figures: number;
+        methods: number;
+        limitations: number;
+        citations: number;
+        notes: number;
+      };
+      majorConcerns: string[];
+      unresolvedSupportGaps: string[];
+    }>;
+    memorySignals: string[];
+    contradictions: Array<{
+      leftClaimId: EntityId;
+      rightClaimId: EntityId;
+      reason: string;
+    }>;
+  };
+};
+
+export type ClaimFramingAssessment = {
+  assessmentId: EntityId;
+  type: "claim_framing_assessment";
+  manuscriptId: EntityId;
+  claimId: EntityId;
+  suggestedClaimType: ClaimType;
+  suggestedStrengthLevel: StrengthLevel;
+  rationale: string;
+  cues: string[];
+  modelConfidence: number;
+  sourceMode: ClaimFramingSourceMode;
+  basedOnSnapshotRef: string;
+  basedOnClaimText: string;
+  generatedAt: string;
+};
+
+export type ClaimDiscussionMessage = {
+  id: EntityId;
+  type: "claim_discussion_message";
+  manuscriptId: EntityId;
+  claimId: EntityId;
+  threadId: EntityId;
+  role: "user" | "assistant";
+  content: string;
+  sourceMode?: DiscussionSourceMode;
+  fallbackReason?: string;
+  groundingClaimIds: EntityId[];
+  groundingObjectIds: EntityId[];
+  createdBy?: EntityId;
+  createdAt: string;
+};
+
+export type ClaimDiscussionThread = {
+  id: EntityId;
+  type: "claim_discussion_thread";
+  manuscriptId: EntityId;
+  claimId: EntityId;
+  title?: string;
+  createdBy?: EntityId;
+  createdAt: string;
+  updatedAt: string;
+  messages: ClaimDiscussionMessage[];
 };

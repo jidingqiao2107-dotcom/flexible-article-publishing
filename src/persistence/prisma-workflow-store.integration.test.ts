@@ -76,8 +76,6 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("Prisma-backed authority and wor
     const claim = await store.createClaim({
       manuscriptId: manuscript.id,
       text: "Treatment A causes marker B reduction in the study cohort.",
-      claimType: "observation",
-      strengthLevel: "moderate",
       createdBy: correspondingAuthor.id
     });
     const evidence = await store.createEvidence({
@@ -169,6 +167,15 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("Prisma-backed authority and wor
     });
     expect(persistedApproval.approvalType).toBe("claim_approval");
     expect(persistedApproval.targetVersionId).toBe("version_claim_001");
+    expect(approved.claim.claimType).toBe("observation");
+    expect(approved.claim.strengthLevel).toBe("strong");
+
+    const persistedFraming = await prisma.claimFramingAssessment.findFirstOrThrow({
+      where: { claimId: workflow.claim.id },
+      orderBy: { generatedAt: "desc" }
+    });
+    expect(persistedFraming.suggestedClaimType).toBe("observation");
+    expect(persistedFraming.suggestedStrengthLevel).toBe("strong");
 
     const audit = await prisma.auditLog.findFirstOrThrow({
       where: {
@@ -503,5 +510,40 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("Prisma-backed authority and wor
     );
 
     expect(linkedMethodAfterApproval?.status).toBe("confirmed");
+  });
+
+  it("persists a separate saved claim discussion thread for validity questions", async () => {
+    const workflow = await seedWorkflow();
+
+    const firstReply = await store.askClaimDiscussion({
+      claimId: workflow.claim.id,
+      actorId: workflow.correspondingAuthor.id,
+      question: "Verify the validity of this claim based on the current support bundle.",
+      requestedMode: "deterministic"
+    });
+
+    expect(firstReply.thread.claimId).toBe(workflow.claim.id);
+    expect(firstReply.thread.messages).toHaveLength(2);
+    expect(firstReply.thread.messages[0].role).toBe("user");
+    expect(firstReply.thread.messages[1].role).toBe("assistant");
+    expect(firstReply.answer.referencedClaimIds).toContain(workflow.claim.id);
+
+    const secondReply = await store.askClaimDiscussion({
+      claimId: workflow.claim.id,
+      actorId: workflow.correspondingAuthor.id,
+      question: "Rewrite the claim more conservatively based on the remembered support.",
+      requestedMode: "deterministic"
+    });
+
+    expect(secondReply.thread.id).toBe(firstReply.thread.id);
+    expect(secondReply.thread.messages).toHaveLength(4);
+
+    const persistedThread = await prisma.claimDiscussionThread.findUniqueOrThrow({
+      where: { claimId: workflow.claim.id },
+      include: { messages: { orderBy: { createdAt: "asc" } } }
+    });
+    expect(persistedThread.messages).toHaveLength(4);
+    expect(persistedThread.messages[0].content).toContain("Verify the validity");
+    expect(persistedThread.messages[1].sourceMode).toBe("deterministic_discussion_contract_v1");
   });
 });

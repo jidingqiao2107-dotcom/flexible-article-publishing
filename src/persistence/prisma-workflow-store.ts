@@ -14,20 +14,26 @@ import {
   assessClaimValidity as buildClaimValidityAssessment,
   selectLatestClaimValidityAssessments
 } from "@/domain/validity";
-import { answerGroundedDiscussion, buildProjectMemorySummary } from "@/domain/project-memory";
+import { buildProjectMemorySummary } from "@/domain/project-memory";
 import {
   createCurrentClaimTrustSnapshotRef,
   createCurrentManuscriptTrustSnapshotRef,
   getClaimTrustReadiness,
   getManuscriptTrustReadiness
 } from "@/domain/trust";
+import { generateClaimFramingAssessment } from "@/llm/claim-framing";
+import { generateGroundedDiscussion } from "@/llm/grounded-discussion";
 import type {
   AIReviewResult,
   Actor,
   ApprovalEvent,
   Author,
   Claim,
+  ClaimDiscussionMessage,
+  ClaimDiscussionThread,
+  ClaimFramingAssessment,
   Citation,
+  DiscussionRequestedMode,
   ExportMode,
   ClaimValidityAssessment,
   ClaimTrustReadiness,
@@ -186,7 +192,9 @@ const citationFromRecord = (record: any): Citation => ({
   citationKey: record.citationKey,
   doi: record.doi ?? undefined,
   title: record.title,
-  authors: Array.isArray(record.authors) ? record.authors.filter((author): author is string => typeof author === "string") : [],
+  authors: Array.isArray(record.authors)
+    ? record.authors.filter((author: unknown): author is string => typeof author === "string")
+    : [],
   journal: record.journal ?? undefined,
   year: record.year ?? undefined,
   volume: record.volume ?? undefined,
@@ -266,6 +274,50 @@ const validityAssessmentFromRecord = (record: any): ClaimValidityAssessment => (
   stale: false,
   freshnessStatus: "current",
   staleReasons: []
+});
+
+const claimFramingAssessmentFromRecord = (record: any): ClaimFramingAssessment => ({
+  assessmentId: record.id,
+  type: "claim_framing_assessment",
+  manuscriptId: record.manuscriptId,
+  claimId: record.claimId,
+  suggestedClaimType: record.suggestedClaimType,
+  suggestedStrengthLevel: record.suggestedStrengthLevel,
+  rationale: record.rationale,
+  cues: Array.isArray(record.cues) ? record.cues : [],
+  modelConfidence: record.modelConfidence,
+  sourceMode: record.sourceMode,
+  basedOnSnapshotRef: record.basedOnSnapshotRef,
+  basedOnClaimText: record.basedOnClaimText,
+  generatedAt: iso(record.generatedAt)!
+});
+
+const claimDiscussionMessageFromRecord = (record: any): ClaimDiscussionMessage => ({
+  id: record.id,
+  type: "claim_discussion_message",
+  manuscriptId: record.manuscriptId,
+  claimId: record.claimId,
+  threadId: record.threadId,
+  role: record.role,
+  content: record.content,
+  sourceMode: record.sourceMode ?? undefined,
+  fallbackReason: record.fallbackReason ?? undefined,
+  groundingClaimIds: Array.isArray(record.groundingClaimIds) ? record.groundingClaimIds : [],
+  groundingObjectIds: Array.isArray(record.groundingObjectIds) ? record.groundingObjectIds : [],
+  createdBy: record.createdBy ?? undefined,
+  createdAt: iso(record.createdAt)!
+});
+
+const claimDiscussionThreadFromRecord = (record: any): ClaimDiscussionThread => ({
+  id: record.id,
+  type: "claim_discussion_thread",
+  manuscriptId: record.manuscriptId,
+  claimId: record.claimId,
+  title: record.title ?? undefined,
+  createdBy: record.createdBy ?? undefined,
+  createdAt: iso(record.createdAt)!,
+  updatedAt: iso(record.updatedAt)!,
+  messages: Array.isArray(record.messages) ? record.messages.map(claimDiscussionMessageFromRecord) : []
 });
 
 const authorFromRecord = (record: any): Author => ({
@@ -427,6 +479,44 @@ async function assertSectionObjectRefsBelongToManuscript(manuscriptId: string, o
   );
 }
 
+function createClaimTextSnapshotRef(text: string) {
+  return `claim_text_${Buffer.from(text).toString("base64url").slice(0, 24)}`;
+}
+
+function selectLatestClaimFramingAssessments(assessments: ClaimFramingAssessment[]) {
+  const latestByClaim = new Map<string, ClaimFramingAssessment>();
+
+  for (const assessment of assessments) {
+    const current = latestByClaim.get(assessment.claimId);
+    if (!current || current.generatedAt < assessment.generatedAt) {
+      latestByClaim.set(assessment.claimId, assessment);
+    }
+  }
+
+  return [...latestByClaim.values()];
+}
+
+async function getClaimLinkConfirmation(manuscriptId: string, actorId?: string) {
+  if (!actorId) {
+    return { status: "proposed" as const };
+  }
+
+  const member = await prisma.manuscriptMember.findUnique({
+    where: { manuscriptId_authorId: { manuscriptId, authorId: actorId } },
+    select: { authorId: true }
+  });
+
+  if (!member) {
+    return { status: "proposed" as const };
+  }
+
+  return {
+    status: "confirmed" as const,
+    confirmedBy: member.authorId,
+    confirmedAt: new Date()
+  };
+}
+
 async function resolveAuthority(manuscriptId: string, actorId: string) {
   const manuscript = await prisma.manuscript.findUnique({
     where: { id: manuscriptId },
@@ -566,6 +656,7 @@ export async function getResearchObjectGraph(manuscriptId?: string): Promise<Res
       approvalEvents: true,
       provenanceRecords: true,
       aiReviewResults: true,
+      claimFramingAssessments: { orderBy: { generatedAt: "desc" } },
       validityAssessments: { orderBy: { generatedAt: "desc" } },
       auditLogs: true,
       datasets: true,
@@ -613,6 +704,9 @@ export async function getResearchObjectGraph(manuscriptId?: string): Promise<Res
     manuscriptMembers: manuscript.members.map(manuscriptMemberFromRecord),
     aiReviewResults: manuscript.aiReviewResults.map(reviewFromRecord),
     validityAssessments: [],
+    claimFramingAssessments: selectLatestClaimFramingAssessments(
+      manuscript.claimFramingAssessments.map(claimFramingAssessmentFromRecord)
+    ),
     claimTrustReadiness: [],
     datasets: manuscript.datasets.map((dataset) => ({ id: dataset.id, title: dataset.title })),
     softwareArtifacts: manuscript.softwareArtifacts.map((artifact) => ({ id: artifact.id, name: artifact.name }))
@@ -678,13 +772,140 @@ export async function answerProjectDiscussion(input: {
   projectId?: string;
   question: string;
   claimIds?: string[];
+  requestedMode?: DiscussionRequestedMode;
 }): Promise<GroundedDiscussionAnswer> {
   const memory = await getProjectMemory(input.projectId);
-  return answerGroundedDiscussion({
+  return generateGroundedDiscussion({
     memory,
     question: input.question,
-    claimIds: input.claimIds
+    claimIds: input.claimIds,
+    requestedMode: input.requestedMode
   });
+}
+
+export async function getClaimDiscussionThread(claimId: string): Promise<ClaimDiscussionThread> {
+  const claim = await prisma.claim.findUnique({
+    where: { id: claimId },
+    select: { id: true, manuscriptId: true }
+  });
+
+  if (!claim) {
+    throw new Error(`Claim ${claimId} was not found.`);
+  }
+
+  const thread = await prisma.claimDiscussionThread.upsert({
+    where: { claimId },
+    create: {
+      claimId,
+      manuscriptId: claim.manuscriptId
+    },
+    update: {},
+    include: {
+      messages: {
+        orderBy: { createdAt: "asc" }
+      }
+    }
+  });
+
+  return claimDiscussionThreadFromRecord(thread);
+}
+
+export async function askClaimDiscussion(input: {
+  claimId: string;
+  question: string;
+  actorId?: string;
+  requestedMode?: DiscussionRequestedMode;
+}): Promise<{ thread: ClaimDiscussionThread; answer: GroundedDiscussionAnswer }> {
+  const claim = await prisma.claim.findUnique({
+    where: { id: input.claimId },
+    select: {
+      id: true,
+      manuscriptId: true,
+      manuscript: {
+        select: {
+          projectId: true
+        }
+      }
+    }
+  });
+
+  if (!claim) {
+    throw new Error(`Claim ${input.claimId} was not found.`);
+  }
+
+  const existingThread = await getClaimDiscussionThread(input.claimId);
+  const memory = await getProjectMemory(claim.manuscript.projectId);
+  const answer = await generateGroundedDiscussion({
+    memory,
+    question: input.question,
+    claimIds: [input.claimId],
+    requestedMode: input.requestedMode,
+    priorTurns: existingThread.messages.map((message) => ({
+      role: message.role,
+      content: message.content
+    }))
+  });
+
+  const persisted = await prisma.$transaction(async (tx) => {
+    await tx.claimDiscussionMessage.create({
+      data: {
+        manuscriptId: claim.manuscriptId,
+        claimId: input.claimId,
+        threadId: existingThread.id,
+        role: "user",
+        content: input.question,
+        createdBy: input.actorId,
+        groundingClaimIds: [input.claimId],
+        groundingObjectIds: []
+      }
+    });
+
+    await tx.claimDiscussionMessage.create({
+      data: {
+        manuscriptId: claim.manuscriptId,
+        claimId: input.claimId,
+        threadId: existingThread.id,
+        role: "assistant",
+        content: answer.answer,
+        sourceMode: answer.sourceMode,
+        fallbackReason: answer.fallbackReason,
+        createdBy: answer.sourceMode === "llm_openai_responses_v1" ? AI_REVIEW_ACTOR.id : SYSTEM_ACTOR.id,
+        groundingClaimIds: answer.referencedClaimIds,
+        groundingObjectIds: answer.usedMemoryObjectIds
+      }
+    });
+
+    return tx.claimDiscussionThread.update({
+      where: { id: existingThread.id },
+      data: {
+        title: existingThread.title ?? "Claim validity discussion"
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: "asc" }
+        }
+      }
+    });
+  });
+
+  await writeAuditLog({
+    manuscriptId: claim.manuscriptId,
+    actor: actorFromId(input.actorId),
+    action: "claim_discussion.asked",
+    targetEntityType: "claim_discussion_thread",
+    targetEntityId: existingThread.id,
+    sourceClassification: input.actorId ? "human" : "system",
+    afterSnapshot: {
+      claimId: input.claimId,
+      sourceMode: answer.sourceMode,
+      question: input.question
+    }
+  });
+
+  return {
+    thread: claimDiscussionThreadFromRecord(persisted),
+    answer
+  };
 }
 
 export async function listAuthors(projectId?: string): Promise<Author[]> {
@@ -794,8 +1015,6 @@ export async function seedDevelopmentQaScenario() {
   const claim = await createClaim({
     manuscriptId: manuscript.id,
     text: "Treatment A causes marker B reduction in the study cohort.",
-    claimType: "observation",
-    strengthLevel: "moderate",
     createdBy: correspondingAuthor.id
   });
   const evidence = await createEvidence({
@@ -931,38 +1150,79 @@ export async function listClaims(manuscriptId?: string): Promise<Claim[]> {
 export async function createClaim(input: {
   manuscriptId: string;
   text: string;
-  claimType: ClaimType;
-  strengthLevel: StrengthLevel;
   createdBy?: string;
 }): Promise<Claim> {
   const manuscriptId = requireManuscriptId(input.manuscriptId, "create a claim");
-  const record = await prisma.claim.create({
-    data: {
+  const provisionalFraming = await generateClaimFramingAssessment({
+    manuscriptId,
+    claimId: `claim_preview_${Date.now()}`,
+    text: input.text,
+    basedOnSnapshotRef: createClaimTextSnapshotRef(input.text)
+  });
+  const { claimRecord } = await prisma.$transaction(async (tx) => {
+    const created = await tx.claim.create({
+      data: {
+        manuscriptId,
+        text: input.text,
+        claimType: provisionalFraming.suggestedClaimType,
+        strengthLevel: provisionalFraming.suggestedStrengthLevel,
+        createdBy: input.createdBy ?? SYSTEM_ACTOR.id
+      },
+      include: { evidenceLinks: true, figureLinks: true, methodLinks: true, citationLinks: true, limitationLinks: true }
+    });
+
+    const framing = await generateClaimFramingAssessment({
       manuscriptId,
+      claimId: created.id,
       text: input.text,
-      claimType: input.claimType,
-      strengthLevel: input.strengthLevel,
-      createdBy: input.createdBy ?? SYSTEM_ACTOR.id
-    },
-    include: { evidenceLinks: true, figureLinks: true, methodLinks: true, citationLinks: true, limitationLinks: true }
+      basedOnSnapshotRef: createClaimTextSnapshotRef(input.text)
+    });
+
+    await tx.claim.update({
+      where: { id: created.id },
+      data: {
+        claimType: framing.suggestedClaimType,
+        strengthLevel: framing.suggestedStrengthLevel
+      }
+    });
+
+    await tx.claimFramingAssessment.create({
+      data: {
+        manuscriptId,
+        claimId: created.id,
+        suggestedClaimType: framing.suggestedClaimType,
+        suggestedStrengthLevel: framing.suggestedStrengthLevel,
+        rationale: framing.rationale,
+        cues: framing.cues,
+        modelConfidence: framing.modelConfidence,
+        sourceMode: framing.sourceMode,
+        basedOnSnapshotRef: framing.basedOnSnapshotRef,
+        basedOnClaimText: framing.basedOnClaimText
+      }
+    });
+
+    const refreshed = await tx.claim.findUniqueOrThrow({
+      where: { id: created.id },
+      include: { evidenceLinks: true, figureLinks: true, methodLinks: true, citationLinks: true, limitationLinks: true }
+    });
+
+    return { claimRecord: refreshed, framing };
   });
   await writeAuditLog({
     manuscriptId,
     actor: actorFromId(input.createdBy),
     action: "claim.created",
     targetEntityType: "claim",
-    targetEntityId: record.id,
+    targetEntityId: claimRecord.id,
     sourceClassification: input.createdBy ? "human" : "system",
-    afterSnapshot: { text: record.text, claimType: record.claimType, strengthLevel: record.strengthLevel }
+    afterSnapshot: { text: claimRecord.text, claimType: claimRecord.claimType, strengthLevel: claimRecord.strengthLevel }
   });
-  return claimFromRecord(record);
+  return claimFromRecord(claimRecord);
 }
 
 export async function updateClaim(input: {
   claimId: string;
   text: string;
-  claimType: ClaimType;
-  strengthLevel: StrengthLevel;
   updatedBy?: string;
 }): Promise<Claim> {
   const existing = await prisma.claim.findUniqueOrThrow({
@@ -970,14 +1230,40 @@ export async function updateClaim(input: {
     include: { evidenceLinks: true, figureLinks: true, methodLinks: true, citationLinks: true, limitationLinks: true }
   });
 
-  const record = await prisma.claim.update({
-    where: { id: input.claimId },
-    data: {
-      text: input.text,
-      claimType: input.claimType,
-      strengthLevel: input.strengthLevel
-    },
-    include: { evidenceLinks: true, figureLinks: true, methodLinks: true, citationLinks: true, limitationLinks: true }
+  const framing = await generateClaimFramingAssessment({
+    manuscriptId: existing.manuscriptId,
+    claimId: existing.id,
+    text: input.text,
+    basedOnSnapshotRef: createClaimTextSnapshotRef(input.text)
+  });
+
+  const record = await prisma.$transaction(async (tx) => {
+    const updated = await tx.claim.update({
+      where: { id: input.claimId },
+      data: {
+        text: input.text,
+        claimType: framing.suggestedClaimType,
+        strengthLevel: framing.suggestedStrengthLevel
+      },
+      include: { evidenceLinks: true, figureLinks: true, methodLinks: true, citationLinks: true, limitationLinks: true }
+    });
+
+    await tx.claimFramingAssessment.create({
+      data: {
+        manuscriptId: updated.manuscriptId,
+        claimId: updated.id,
+        suggestedClaimType: framing.suggestedClaimType,
+        suggestedStrengthLevel: framing.suggestedStrengthLevel,
+        rationale: framing.rationale,
+        cues: framing.cues,
+        modelConfidence: framing.modelConfidence,
+        sourceMode: framing.sourceMode,
+        basedOnSnapshotRef: framing.basedOnSnapshotRef,
+        basedOnClaimText: framing.basedOnClaimText
+      }
+    });
+
+    return updated;
   });
 
   await writeAuditLog({

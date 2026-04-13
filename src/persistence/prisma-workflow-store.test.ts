@@ -1,5 +1,14 @@
-import { describe, expect, it } from "vitest";
-import * as store from "./prisma-workflow-store";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
+vi.mock("./prisma-client", () => ({
+  prisma: {}
+}));
+
+let store: typeof import("./prisma-workflow-store");
+
+beforeAll(async () => {
+  store = await import("./prisma-workflow-store");
+});
 
 describe("Prisma workflow store contract", () => {
   it("exports Prisma-backed operations for the MVP route workflow", () => {
@@ -15,6 +24,8 @@ describe("Prisma workflow store contract", () => {
     expect(typeof store.createLimitation).toBe("function");
     expect(typeof store.runReview).toBe("function");
     expect(typeof store.assessClaimValidity).toBe("function");
+    expect(typeof store.getClaimDiscussionThread).toBe("function");
+    expect(typeof store.askClaimDiscussion).toBe("function");
     expect(typeof store.listLatestClaimValidityAssessments).toBe("function");
     expect(typeof store.getClaimTrustContracts).toBe("function");
     expect(typeof store.getManuscriptTrustContract).toBe("function");

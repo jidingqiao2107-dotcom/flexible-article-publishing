@@ -75,6 +75,14 @@ type GraphPayload = {
   manuscript: Manuscript;
   sections: Section[];
   claims: Claim[];
+  claimFramingAssessments?: Array<{
+    claimId: string;
+    suggestedClaimType: string;
+    suggestedStrengthLevel: string;
+    rationale: string;
+    sourceMode: string;
+    generatedAt: string;
+  }>;
   evidence: Evidence[];
   figures: Figure[];
   methods: MethodBlock[];
@@ -172,9 +180,7 @@ export default function QAClient() {
     memberRole: "coauthor"
   });
   const [claimForm, setClaimForm] = useState({
-    text: "",
-    claimType: "observation",
-    strengthLevel: "moderate"
+    text: ""
   });
   const [evidenceForm, setEvidenceForm] = useState({
     evidenceType: "figure",
@@ -877,34 +883,9 @@ export default function QAClient() {
               rows={3}
             />
           </label>
-          <div className="qa-inline">
-            <label>
-              Claim type
-              <select
-                value={claimForm.claimType}
-                onChange={(event) => setClaimForm({ ...claimForm, claimType: event.target.value })}
-              >
-                <option value="observation">observation</option>
-                <option value="interpretation">interpretation</option>
-                <option value="mechanism">mechanism</option>
-                <option value="hypothesis">hypothesis</option>
-                <option value="conclusion">conclusion</option>
-                <option value="background">background</option>
-              </select>
-            </label>
-            <label>
-              Strength
-              <select
-                value={claimForm.strengthLevel}
-                onChange={(event) => setClaimForm({ ...claimForm, strengthLevel: event.target.value })}
-              >
-                <option value="weak">weak</option>
-                <option value="moderate">moderate</option>
-                <option value="strong">strong</option>
-                <option value="exploratory">exploratory</option>
-              </select>
-            </label>
-          </div>
+          <p className="muted">
+            Claim type and strength are judged by AI from the saved claim wording and stored as claim framing.
+          </p>
           <button
             disabled={loading || !selectedManuscriptId || !claimForm.text.trim()}
             onClick={() =>
@@ -913,14 +894,11 @@ export default function QAClient() {
                   method: "POST",
                   body: JSON.stringify({
                     manuscriptId: selectedManuscriptId,
-                    text: claimForm.text,
-                    claimType: claimForm.claimType,
-                    strengthLevel: claimForm.strengthLevel,
-                    createdBy: session?.actor.id
+                    text: claimForm.text
                   })
                 });
                 setSelectedClaimId(payload.claim.id);
-                setClaimForm({ text: "", claimType: "observation", strengthLevel: "moderate" });
+                setClaimForm({ text: "" });
                 await refreshGraph(selectedManuscriptId);
               }, "Claim created.")
             }
@@ -1409,6 +1387,14 @@ export default function QAClient() {
                 {item.trust ? `| ${item.trust.humanApprovalStatus}` : item.authorApproved ? "| human-approved" : "| not approved"}
               </p>
               <p>{item.text}</p>
+              {(() => {
+                const framing = graph?.claimFramingAssessments?.find((assessment) => assessment.claimId === item.claimId);
+                return framing ? (
+                  <p className="muted">
+                    AI framing: {framing.suggestedClaimType} | {framing.suggestedStrengthLevel}
+                  </p>
+                ) : null;
+              })()}
               <p className="muted">Confirmed evidence links: {item.confirmedEvidenceCount}</p>
               {item.trust ? (
                 <>

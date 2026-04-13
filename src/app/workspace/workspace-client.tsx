@@ -139,9 +139,21 @@ type GraphPayload = {
   approvals: Array<{ id: string; approvalType: string; actorId: string; targetEntityType: string; targetEntityId: string; approved: boolean; createdAt: string }>;
   aiReviewResults: AIReviewResult[];
   validityAssessments: ClaimValidityAssessment[];
+  claimFramingAssessments?: ClaimFramingAssessment[];
   claimTrustReadiness: ClaimTrustReadiness[];
   manuscriptTrustReadiness: ManuscriptTrustReadiness;
   exportReadiness: ExportReadiness;
+};
+type ClaimFramingAssessment = {
+  assessmentId: string;
+  claimId: string;
+  suggestedClaimType: string;
+  suggestedStrengthLevel: string;
+  rationale: string;
+  cues: string[];
+  modelConfidence: number;
+  sourceMode: string;
+  generatedAt: string;
 };
 type StructuredView = { manuscript?: ManuscriptSummary; sections?: Section[]; renderedText: string; objectCounts: Record<string, number> };
 type ClaimCreateResponse = { claim: Claim };
@@ -226,8 +238,8 @@ export default function WorkspaceClient() {
   const [membership, setMembership] = useState<MembershipContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("Loading manuscript workspace...");
-  const [newClaimForm, setNewClaimForm] = useState({ text: "", claimType: "observation", strengthLevel: "moderate" });
-  const [claimForm, setClaimForm] = useState({ text: "", claimType: "observation", strengthLevel: "moderate" });
+  const [newClaimForm, setNewClaimForm] = useState({ text: "" });
+  const [claimForm, setClaimForm] = useState({ text: "" });
   const [evidenceForm, setEvidenceForm] = useState({ summary: "", evidenceType: "observation", confidenceNotes: "" });
   const [newEvidenceForm, setNewEvidenceForm] = useState({ summary: "", evidenceType: "observation", confidenceNotes: "" });
   const [sectionPlacement, setSectionPlacement] = useState(NEW_SECTION_VALUE);
@@ -368,6 +380,10 @@ export default function WorkspaceClient() {
     () => graph?.validityAssessments.find((assessment) => assessment.claimId === activeClaim?.id) ?? null,
     [graph?.validityAssessments, activeClaim?.id]
   );
+  const activeClaimFraming = useMemo(
+    () => graph?.claimFramingAssessments?.find((assessment) => assessment.claimId === activeClaim?.id) ?? null,
+    [graph?.claimFramingAssessments, activeClaim?.id]
+  );
   const activeClaimTrust = useMemo(
     () => graph?.claimTrustReadiness.find((assessment) => assessment.claimId === activeClaim?.id) ?? null,
     [graph?.claimTrustReadiness, activeClaim?.id]
@@ -440,16 +456,14 @@ export default function WorkspaceClient() {
 
   useEffect(() => {
     if (!activeClaim) {
-      setClaimForm({ text: "", claimType: "observation", strengthLevel: "moderate" });
+      setClaimForm({ text: "" });
       return;
     }
 
     setClaimForm({
-      text: activeClaim.text,
-      claimType: activeClaim.claimType,
-      strengthLevel: activeClaim.strengthLevel
+      text: activeClaim.text
     });
-  }, [activeClaim?.id]);
+  }, [activeClaim?.id, activeClaim?.text]);
 
   useEffect(() => {
     if (!activeEvidence.length) {
@@ -611,34 +625,9 @@ export default function WorkspaceClient() {
                 onChange={(event) => setNewClaimForm({ ...newClaimForm, text: event.target.value })}
               />
             </label>
-            <div className="qa-inline">
-              <label>
-                Claim type
-                <select
-                  value={newClaimForm.claimType}
-                  onChange={(event) => setNewClaimForm({ ...newClaimForm, claimType: event.target.value })}
-                >
-                  <option value="observation">observation</option>
-                  <option value="interpretation">interpretation</option>
-                  <option value="mechanism">mechanism</option>
-                  <option value="hypothesis">hypothesis</option>
-                  <option value="conclusion">conclusion</option>
-                  <option value="background">background</option>
-                </select>
-              </label>
-              <label>
-                Strength
-                <select
-                  value={newClaimForm.strengthLevel}
-                  onChange={(event) => setNewClaimForm({ ...newClaimForm, strengthLevel: event.target.value })}
-                >
-                  <option value="weak">weak</option>
-                  <option value="moderate">moderate</option>
-                  <option value="strong">strong</option>
-                  <option value="exploratory">exploratory</option>
-                </select>
-              </label>
-            </div>
+            <p className="muted">
+              After you save the text, the system will judge claim type and strength and store that framing with the claim.
+            </p>
             <button
               type="button"
               disabled={claimCreating || !selectedManuscriptId || !newClaimForm.text.trim()}
@@ -649,13 +638,10 @@ export default function WorkspaceClient() {
                       method: "POST",
                       body: JSON.stringify({
                         manuscriptId: selectedManuscriptId,
-                        text: newClaimForm.text,
-                        claimType: newClaimForm.claimType,
-                        strengthLevel: newClaimForm.strengthLevel,
-                        createdBy: actorId
+                        text: newClaimForm.text
                       })
                     });
-                    setNewClaimForm({ text: "", claimType: "observation", strengthLevel: "moderate" });
+                    setNewClaimForm({ text: "" });
                     setSelectedClaimId(payload.claim.id);
                     await refreshWorkspace(selectedManuscriptId);
                   },
@@ -751,33 +737,25 @@ export default function WorkspaceClient() {
                     onChange={(event) => setClaimForm({ ...claimForm, text: event.target.value })}
                   />
                 </label>
-                <div className="qa-inline">
-                  <label>
-                    Claim type
-                    <select
-                      value={claimForm.claimType}
-                      onChange={(event) => setClaimForm({ ...claimForm, claimType: event.target.value })}
-                    >
-                      <option value="observation">observation</option>
-                      <option value="interpretation">interpretation</option>
-                      <option value="mechanism">mechanism</option>
-                      <option value="hypothesis">hypothesis</option>
-                      <option value="conclusion">conclusion</option>
-                      <option value="background">background</option>
-                    </select>
-                  </label>
-                  <label>
-                    Strength
-                    <select
-                      value={claimForm.strengthLevel}
-                      onChange={(event) => setClaimForm({ ...claimForm, strengthLevel: event.target.value })}
-                    >
-                      <option value="weak">weak</option>
-                      <option value="moderate">moderate</option>
-                      <option value="strong">strong</option>
-                      <option value="exploratory">exploratory</option>
-                    </select>
-                  </label>
+                <div className="workspace-object-card">
+                  <p>
+                    <strong>AI claim framing</strong>
+                  </p>
+                  <p className="muted">
+                    Type: {activeClaimFraming?.suggestedClaimType ?? activeClaim.claimType} | Strength:{" "}
+                    {activeClaimFraming?.suggestedStrengthLevel ?? activeClaim.strengthLevel}
+                  </p>
+                  {activeClaimFraming ? (
+                    <>
+                      <p className="muted">{activeClaimFraming.rationale}</p>
+                      <p className="muted">
+                        Source: {activeClaimFraming.sourceMode} | Confidence:{" "}
+                        {Math.round(activeClaimFraming.modelConfidence * 100)}%
+                      </p>
+                    </>
+                  ) : (
+                    <p className="muted">Save the claim text to generate a framing assessment.</p>
+                  )}
                 </div>
                 <div className="workspace-inline-status">
                   <span className={activeClaimTrust?.lifecycleState === "publication_ready" ? "pill" : "warning"}>
@@ -795,9 +773,7 @@ export default function WorkspaceClient() {
                   disabled={
                     claimSaving ||
                     !claimForm.text.trim() ||
-                    (claimForm.text === activeClaim.text &&
-                      claimForm.claimType === activeClaim.claimType &&
-                      claimForm.strengthLevel === activeClaim.strengthLevel)
+                    claimForm.text === activeClaim.text
                   }
                   onClick={() =>
                     void performAction(
@@ -806,10 +782,7 @@ export default function WorkspaceClient() {
                           method: "PATCH",
                           body: JSON.stringify({
                             claimId: activeClaim.id,
-                            text: claimForm.text,
-                            claimType: claimForm.claimType,
-                            strengthLevel: claimForm.strengthLevel,
-                            updatedBy: actorId
+                            text: claimForm.text
                           })
                         });
                         await refreshWorkspace(selectedManuscriptId);

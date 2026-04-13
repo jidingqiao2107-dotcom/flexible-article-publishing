@@ -90,3 +90,19 @@ Stop and remove the disposable database:
 ```bash
 docker compose down -v
 ```
+
+## Optional LLM-backed discussion mode
+
+The research discussion layer can run in:
+
+- deterministic fallback mode
+- real OpenAI-backed LLM mode
+
+If `OPENAI_API_KEY` is not configured, the app will stay in deterministic mode and say so explicitly in the discussion UI.
+
+Optional environment variables:
+
+```bash
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_DISCUSSION_MODEL=gpt-5
+```

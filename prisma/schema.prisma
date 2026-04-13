@@ -107,6 +107,11 @@ enum ValidityScoreBand {
   high
 }
 
+enum DiscussionRole {
+  user
+  assistant
+}
+
 model Project {
   id          String       @id @default(cuid())
   type        String       @default("project")
@@ -159,6 +164,9 @@ model Manuscript {
   approvalEvents         ApprovalEvent[]
   aiReviewResults        AIReviewResult[]
   validityAssessments    ClaimValidityAssessment[]
+  claimFramingAssessments ClaimFramingAssessment[]
+  claimDiscussionThreads ClaimDiscussionThread[]
+  claimDiscussionMessages ClaimDiscussionMessage[]
   provenanceRecords      ProvenanceRecord[]
   exportPackages         ExportPackage[]
   fundingInfo            FundingInfo[]
@@ -207,6 +215,9 @@ model Claim {
   citationLinks      ClaimCitationLink[]
   limitationLinks    ClaimLimitationLink[]
   validityAssessments ClaimValidityAssessment[]
+  framingAssessments ClaimFramingAssessment[]
+  discussionThread   ClaimDiscussionThread?
+  discussionMessages ClaimDiscussionMessage[]
 
   @@index([manuscriptId])
   @@index([status])
@@ -510,6 +521,65 @@ model ClaimValidityAssessment {
 
   @@index([manuscriptId, claimId])
   @@index([claimId, generatedAt])
+}
+
+model ClaimFramingAssessment {
+  id                     String        @id @default(cuid())
+  type                   String        @default("claim_framing_assessment")
+  manuscriptId           String
+  manuscript             Manuscript    @relation(fields: [manuscriptId], references: [id])
+  claimId                String
+  claim                  Claim         @relation(fields: [claimId], references: [id])
+  suggestedClaimType     ClaimType
+  suggestedStrengthLevel StrengthLevel
+  rationale              String
+  cues                   String[]
+  modelConfidence        Float
+  sourceMode             String        @default("deterministic_claim_framing_v1")
+  basedOnSnapshotRef     String
+  basedOnClaimText       String
+  generatedAt            DateTime      @default(now())
+
+  @@index([manuscriptId, claimId])
+  @@index([claimId, generatedAt])
+}
+
+model ClaimDiscussionThread {
+  id           String                  @id @default(cuid())
+  type         String                  @default("claim_discussion_thread")
+  manuscriptId String
+  manuscript   Manuscript              @relation(fields: [manuscriptId], references: [id])
+  claimId      String                  @unique
+  claim        Claim                   @relation(fields: [claimId], references: [id])
+  title        String?
+  createdBy    String?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  messages     ClaimDiscussionMessage[]
+
+  @@index([manuscriptId, updatedAt])
+}
+
+model ClaimDiscussionMessage {
+  id                String               @id @default(cuid())
+  type              String               @default("claim_discussion_message")
+  manuscriptId      String
+  manuscript        Manuscript           @relation(fields: [manuscriptId], references: [id])
+  claimId           String
+  claim             Claim                @relation(fields: [claimId], references: [id])
+  threadId          String
+  thread            ClaimDiscussionThread @relation(fields: [threadId], references: [id])
+  role              DiscussionRole
+  content           String
+  sourceMode        String?
+  fallbackReason    String?
+  groundingClaimIds String[]
+  groundingObjectIds String[]
+  createdBy         String?
+  createdAt         DateTime             @default(now())
+
+  @@index([threadId, createdAt])
+  @@index([claimId, createdAt])
 }
 
 model ProvenanceRecord {

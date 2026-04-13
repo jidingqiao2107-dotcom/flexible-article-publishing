@@ -6,6 +6,7 @@ export async function POST(request: Request) {
     projectId?: string;
     question?: string;
     claimIds?: string[];
+    requestedMode?: "auto" | "deterministic" | "llm";
   };
 
   if (!body.question?.trim()) {
@@ -17,7 +18,8 @@ export async function POST(request: Request) {
       answer: await answerProjectDiscussion({
         projectId: body.projectId,
         question: body.question,
-        claimIds: body.claimIds
+        claimIds: body.claimIds,
+        requestedMode: body.requestedMode
       })
     });
   } catch (error) {

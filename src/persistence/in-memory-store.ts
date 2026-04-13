@@ -23,6 +23,23 @@ import type {
 
 const now = () => new Date().toISOString();
 
+function inferClaimType(text: string): ClaimType {
+  const lowered = text.toLowerCase();
+  if (/\bwe hypothesize\b|\bmay\b|\bcould\b|\bmight\b|\bpropose\b/.test(lowered)) return "hypothesis";
+  if (/\bmechanism\b|\bpathway\b|\bmediated by\b|\bdriven by\b|\bthrough\b/.test(lowered)) return "mechanism";
+  if (/\bsuggests\b|\bindicates\b|\bconsistent with\b|\bimplies\b/.test(lowered)) return "interpretation";
+  if (/\bconclude\b|\btherefore\b|\bdemonstrates\b|\bshows that\b/.test(lowered)) return "conclusion";
+  if (/\bknown\b|\bpreviously\b|\breported\b|\bin the literature\b/.test(lowered)) return "background";
+  return "observation";
+}
+
+function inferClaimStrength(text: string): StrengthLevel {
+  const lowered = text.toLowerCase();
+  if (/\bmay\b|\bcould\b|\bmight\b|\bpreliminary\b|\bexploratory\b/.test(lowered)) return "exploratory";
+  if (/\bcauses\b|\bdemonstrates\b|\bestablishes\b|\bproves\b/.test(lowered)) return "strong";
+  return "moderate";
+}
+
 const projects: Project[] = [
   {
     id: "project_001",
@@ -141,8 +158,6 @@ export function listSections(): Section[] {
 
 export function createClaim(input: {
   text: string;
-  claimType: ClaimType;
-  strengthLevel: StrengthLevel;
   createdBy?: string;
 }): Claim {
   const timestamp = now();
@@ -151,8 +166,8 @@ export function createClaim(input: {
     type: "claim",
     manuscriptId: graph.manuscript.id,
     text: input.text,
-    claimType: input.claimType,
-    strengthLevel: input.strengthLevel,
+    claimType: inferClaimType(input.text),
+    strengthLevel: inferClaimStrength(input.text),
     status: "draft",
     authorApproved: false,
     publicationReady: false,

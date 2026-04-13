@@ -4,16 +4,12 @@ const memberRoleSchema = z.enum(["owner", "corresponding_author", "coauthor"]);
 
 export const claimInputSchema = z.object({
   manuscriptId: z.string().trim().min(1),
-  text: z.string().trim().min(1),
-  claimType: z.enum(["observation", "interpretation", "mechanism", "hypothesis", "conclusion", "background"]),
-  strengthLevel: z.enum(["weak", "moderate", "strong", "exploratory"])
+  text: z.string().trim().min(1)
 });
 
 export const claimUpdateInputSchema = z.object({
   claimId: z.string().trim().min(1),
-  text: z.string().trim().min(1),
-  claimType: z.enum(["observation", "interpretation", "mechanism", "hypothesis", "conclusion", "background"]),
-  strengthLevel: z.enum(["weak", "moderate", "strong", "exploratory"])
+  text: z.string().trim().min(1)
 });
 
 export const manuscriptInputSchema = z.object({
@@ -174,4 +170,10 @@ export const authorInputSchema = z.object({
 export const sessionInputSchema = z.object({
   authorId: z.string().trim().min(1),
   label: z.string().trim().min(1).optional()
+});
+
+export const claimDiscussionInputSchema = z.object({
+  claimId: z.string().trim().min(1),
+  question: z.string().trim().min(1),
+  requestedMode: z.enum(["auto", "deterministic", "llm"]).optional()
 });

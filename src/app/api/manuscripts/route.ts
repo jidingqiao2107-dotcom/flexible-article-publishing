@@ -33,6 +33,7 @@ export async function GET(request: Request) {
       auditLogs: graph.auditLogs,
       aiReviewResults: graph.aiReviewResults,
       validityAssessments: graph.validityAssessments,
+      claimFramingAssessments: graph.claimFramingAssessments,
       claimTrustReadiness: graph.claimTrustReadiness,
       manuscriptTrustReadiness,
       authors: graph.authors,

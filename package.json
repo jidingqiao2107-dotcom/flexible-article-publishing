@@ -23,7 +23,9 @@
     "db:test:push": "node scripts/with-test-database-url.mjs prisma db push",
     "validate:persistence": "npm run db:test:push && npm run test:integration",
     "prisma:generate": "node scripts/with-local-env.mjs prisma generate",
-    "prisma:migrate": "node scripts/with-local-env.mjs prisma migrate dev"
+    "prisma:migrate": "node scripts/with-local-env.mjs prisma migrate dev",
+    "repo:sync": "powershell -ExecutionPolicy Bypass -File scripts/sync-repo.ps1",
+    "repo:watch": "powershell -ExecutionPolicy Bypass -File scripts/sync-repo.ps1 -Watch"
   },
   "dependencies": {
     "@prisma/client": "5.22.0",

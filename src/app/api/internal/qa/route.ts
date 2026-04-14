@@ -1,5 +1,5 @@
 import { createDevelopmentSession, buildSessionCookie } from "@/server/identity";
-import { resetDevelopmentQaData, seedDevelopmentQaScenario } from "@/persistence/prisma-workflow-store";
+import { resetDevelopmentQaData, seedDevelopmentQaScenario } from "@/persistence/runtime-store";
 import { NextResponse } from "next/server";
 
 function assertDevelopmentOnly() {

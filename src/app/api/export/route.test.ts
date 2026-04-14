@@ -11,7 +11,7 @@ vi.mock("@/server/identity", () => ({
   requireResolvedActor: mocks.requireResolvedActor
 }));
 
-vi.mock("@/persistence/prisma-workflow-store", () => ({
+vi.mock("@/persistence/runtime-store", () => ({
   createExport: mocks.createExport
 }));
 

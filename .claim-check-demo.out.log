@@ -1,0 +1,20 @@
+
+> route-a-authoring-saas@0.1.0 demo
+> cross-env ROUTE_A_PREVIEW_MODE=demo NEXT_PUBLIC_ROUTE_A_PREVIEW_MODE=demo next dev --hostname 127.0.0.1
+
+   ▲ Next.js 15.5.14
+   - Local:        http://127.0.0.1:3000
+   - Network:      http://127.0.0.1:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.1s
+ ○ Compiling / ...
+ ✓ Compiled / in 3.1s (544 modules)
+ GET / 200 in 3511ms
+ ○ Compiling /api/manuscripts ...
+ ✓ Compiled /api/manuscripts in 1490ms (567 modules)
+ GET /api/manuscripts?manuscriptId=manuscript_demo_founder 200 in 1690ms
+ ✓ Compiled /api/claim-check in 178ms (569 modules)
+ GET /api/claim-check?manuscriptId=manuscript_demo_founder&claimId=claim_demo_001 200 in 282ms
+[?25h

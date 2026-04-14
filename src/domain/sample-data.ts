@@ -1,4 +1,4 @@
-import type { Actor, Claim, Evidence, Figure, Limitation, Manuscript, MethodBlock, ResearchObjectGraph, Section } from "./types";
+import type { Actor, Claim, Evidence, Figure, Limitation, Manuscript, MethodBlock, ResearchObjectGraph, Section, SupportAsset } from "./types";
 
 const now = "2026-04-07T08:00:00.000Z";
 
@@ -104,6 +104,27 @@ export const sampleFigure: Figure = {
   updatedAt: now
 };
 
+export const sampleSupportAsset: SupportAsset = {
+  id: "asset_001",
+  type: "support_asset",
+  manuscriptId: sampleManuscript.id,
+  supportCategory: "image",
+  fileType: "image/png",
+  originalFilename: "marker-b-response.png",
+  storageKey: "preview_marker_b_response.png",
+  publicUrl: "/demo-support-assets/preview_marker_b_response.png",
+  sizeBytes: 2048,
+  contentDigest: "asset_digest_001",
+  linkedClaimIds: [sampleClaim.id],
+  claimLinks: [{ claimId: sampleClaim.id, status: "confirmed", linkedEntityType: "figure", linkedEntityId: sampleFigure.id }],
+  derivedEntityType: "figure",
+  derivedEntityId: sampleFigure.id,
+  status: "available",
+  createdBy: sampleHumanAuthor.id,
+  createdAt: now,
+  updatedAt: now
+};
+
 export const sampleMethod: MethodBlock = {
   id: "method_001",
   type: "method_block",
@@ -154,6 +175,7 @@ export const sampleGraph: ResearchObjectGraph = {
   sections: [sampleSection],
   claims: [sampleClaim],
   evidence: [sampleEvidence],
+  supportAssets: [sampleSupportAsset],
   figures: [sampleFigure],
   methods: [sampleMethod],
   citations: [],

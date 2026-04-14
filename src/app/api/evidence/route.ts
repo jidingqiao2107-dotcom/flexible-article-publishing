@@ -1,4 +1,4 @@
-import { createEvidence, listEvidence, updateEvidence } from "@/persistence/prisma-workflow-store";
+import { createEvidence, listEvidence, updateEvidence } from "@/persistence/runtime-store";
 import { evidenceInputSchema, evidenceUpdateInputSchema } from "@/domain/validation";
 import { requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";

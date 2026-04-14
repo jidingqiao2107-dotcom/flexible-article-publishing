@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   createManuscript: vi.fn()
 }));
 
-vi.mock("@/persistence/prisma-workflow-store", () => ({
+vi.mock("@/persistence/runtime-store", () => ({
   getResearchObjectGraph: mocks.getResearchObjectGraph,
   listManuscripts: mocks.listManuscripts,
   createManuscript: mocks.createManuscript

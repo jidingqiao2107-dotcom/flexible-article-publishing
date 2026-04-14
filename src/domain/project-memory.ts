@@ -51,11 +51,19 @@ export function buildProjectMemorySummary(input: {
         (() => {
           throw new Error(`Missing trust contract for claim ${claim.id}.`);
         })();
-      const evidenceIds = claim.linkedEvidence.map((link) => link.evidenceId);
-      const figureIds = claim.sourceFigures.map((link) => link.entityId).filter(Boolean) as string[];
-      const methodIds = claim.linkedMethods.map((link) => link.entityId).filter(Boolean) as string[];
-      const limitationIds = claim.linkedLimitations.map((link) => link.entityId).filter(Boolean) as string[];
-      const citationIds = claim.linkedCitations.map((link) => link.entityId).filter(Boolean) as string[];
+      const evidenceIds = claim.linkedEvidence.filter((link) => link.status !== "rejected").map((link) => link.evidenceId);
+      const figureIds = claim.sourceFigures.filter((link) => link.status !== "rejected").map((link) => link.entityId).filter(Boolean) as string[];
+      const supportAssetIds = uniqueStrings([
+        ...graph.evidence
+          .filter((item) => evidenceIds.includes(item.id))
+          .flatMap((item) => item.linkedAssetIds),
+        ...graph.figures
+          .filter((item) => figureIds.includes(item.id))
+          .flatMap((item) => item.uploadedAssetIds)
+      ]);
+      const methodIds = claim.linkedMethods.filter((link) => link.status !== "rejected").map((link) => link.entityId).filter(Boolean) as string[];
+      const limitationIds = claim.linkedLimitations.filter((link) => link.status !== "rejected").map((link) => link.entityId).filter(Boolean) as string[];
+      const citationIds = claim.linkedCitations.filter((link) => link.status !== "rejected").map((link) => link.entityId).filter(Boolean) as string[];
       const noteIds = graph.evidence
         .filter((item) => item.evidenceType === "note" && evidenceIds.includes(item.id))
         .map((item) => item.id);
@@ -71,6 +79,7 @@ export function buildProjectMemorySummary(input: {
         aiSuggested: claim.createdBy.startsWith("ai_"),
         supportBundle: {
           evidenceIds,
+          supportAssetIds,
           figureIds,
           methodIds,
           limitationIds,
@@ -236,6 +245,7 @@ function collectUsedMemoryObjectIds(analyses: ProjectMemoryClaimAnalysis[]) {
   return uniqueStrings(
     analyses.flatMap((analysis) => [
       analysis.claimId,
+      ...analysis.supportBundle.supportAssetIds,
       ...analysis.supportBundle.evidenceIds,
       ...analysis.supportBundle.figureIds,
       ...analysis.supportBundle.methodIds,

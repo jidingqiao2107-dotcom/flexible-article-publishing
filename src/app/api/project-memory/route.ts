@@ -1,4 +1,4 @@
-import { digestProjectMemory, getProjectMemory } from "@/persistence/prisma-workflow-store";
+import { digestProjectMemory, getProjectMemory } from "@/persistence/runtime-store";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {

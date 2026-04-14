@@ -3,169 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 
 type Project = { id: string; name: string; description?: string };
-type Manuscript = { id: string; projectId: string; title: string; articleType?: string };
-type Claim = {
-  id: string;
-  text: string;
-  claimType: string;
-  strengthLevel: string;
-  authorApproved: boolean;
-  linkedEvidence: Array<{ evidenceId: string; status: string }>;
-};
-type Evidence = { id: string; summary: string; evidenceType: string; linkedClaimIds: string[] };
-type Figure = { id: string; title: string; caption: string; figureNumber?: string; linkedClaimIds: string[] };
-type MethodBlock = { id: string; title: string; content: string; linkedClaimIds: string[] };
-type Limitation = { id: string; text: string; severityOrImportance?: string; linkedClaimIds: string[] };
-type Citation = { id: string; citationKey: string; title: string; authors: string[]; year?: number; linkedClaimIds: string[] };
-type Section = { id: string; title: string; objectRefs: Array<{ entityType: string; entityId: string }> };
-type GraphPayload = {
-  manuscript: Manuscript & { abstract?: string };
-  claims: Claim[];
-  evidence: Evidence[];
-  figures: Figure[];
-  methods: MethodBlock[];
-  citations: Citation[];
-  limitations: Limitation[];
-  sections: Section[];
-  claimFramingAssessments?: ClaimFramingAssessment[];
-};
-type ClaimValidityAssessment = {
-  claimId: string;
-  overallValidityScore: number;
-  scoreBand: string;
-  summaryForUser: string;
-  stale: boolean;
-};
-type ClaimFramingAssessment = {
-  assessmentId: string;
-  claimId: string;
-  suggestedClaimType: string;
-  suggestedStrengthLevel: string;
-  rationale: string;
-  cues: string[];
-  modelConfidence: number;
-  sourceMode: string;
-  generatedAt: string;
-};
-type ClaimTrustReadiness = {
-  claimId: string;
-  lifecycleState: string;
-  humanApprovalStatus: string;
-  aiReviewStatus: string;
-  blockers: Array<{ code: string; message: string }>;
-  warnings: Array<{ code: string; message: string }>;
-};
-type ProjectMemoryClaimAnalysis = {
-  claimId: string;
-  manuscriptId: string;
-  manuscriptTitle: string;
-  claimText: string;
-  claimType: string;
-  strengthLevel: string;
-  authorConfirmed: boolean;
-  aiSuggested: boolean;
-  supportBundle: {
-    evidenceIds: string[];
-    figureIds: string[];
-    methodIds: string[];
-    limitationIds: string[];
-    citationIds: string[];
-    noteIds: string[];
-  };
-  unresolvedSupportGaps: string[];
-  majorConcerns: string[];
-  suggestedNextActions: string[];
-  validityAssessment?: ClaimValidityAssessment;
-  trustReadiness: ClaimTrustReadiness;
-};
-type ProjectMemorySummary = {
-  projectId: string;
-  manuscripts: Array<{ id: string; title: string }>;
-  claimAnalyses: ProjectMemoryClaimAnalysis[];
-  strongestClaims: Array<{ claimId: string; manuscriptId: string; claimText: string; score: number; scoreBand?: string }>;
-  weakestClaims: Array<{ claimId: string; manuscriptId: string; claimText: string; score: number; scoreBand?: string }>;
-  claimsMissingSupport: Array<{ claimId: string; manuscriptId: string; claimText: string; gaps: string[] }>;
-  unresolvedContradictions: Array<{ leftClaimId: string; rightClaimId: string; reason: string }>;
-  authorConfirmedClaimIds: string[];
-  aiSuggestedClaimIds: string[];
-  lastDigestedAt: string;
-};
-type GroundedDiscussionAnswer = {
-  mode: string;
-  question: string;
-  answer: string;
-  sourceMode: string;
-  fallbackReason?: string;
-  focus: {
-    scope: "project" | "claim" | "comparison";
-    primaryClaimId?: string;
-    comparisonClaimId?: string;
-  };
-  referencedClaimIds: string[];
-  usedMemoryObjectIds: string[];
-  groundingNotes: string[];
-  suggestedFollowUps: string[];
-  groundedContext: {
-    claims: Array<{
-      claimId: string;
-      manuscriptId: string;
-      manuscriptTitle: string;
-      claimText: string;
-      claimType: string;
-      strengthLevel: string;
-      validityScore?: number;
-      validityBand?: string;
-      trustLifecycleState: string;
-      supportCounts: {
-        evidence: number;
-        figures: number;
-        methods: number;
-        limitations: number;
-        citations: number;
-        notes: number;
-      };
-      majorConcerns: string[];
-      unresolvedSupportGaps: string[];
-    }>;
-    memorySignals: string[];
-    contradictions: Array<{
-      leftClaimId: string;
-      rightClaimId: string;
-      reason: string;
-    }>;
-  };
-};
-
-type DiscussionFocusMode = "project" | "claim" | "comparison";
-type DiscussionRequestMode = "auto" | "deterministic" | "llm";
-type DiscussionTurn = GroundedDiscussionAnswer & { id: string; createdAt: string };
-type ClaimDiscussionMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  sourceMode?: string;
-  fallbackReason?: string;
-  createdAt: string;
-};
-type ClaimDiscussionThread = {
-  id: string;
-  claimId: string;
-  title?: string;
-  messages: ClaimDiscussionMessage[];
-};
-
-type IntakeKind = "claim" | "figure" | "method" | "limitation" | "citation" | "note";
-
-const suggestedQuestions = [
-  "What are the strongest claims?",
-  "What are the weakest claims?",
-  "Why is this claim only moderate validity?",
-  "What support is missing for this claim?",
-  "Explain contradictions or tensions in this project.",
-  "Compare these claims.",
-  "Draft a results paragraph for this claim.",
-  "Rewrite this claim more conservatively."
-];
+type Manuscript = { id: string; projectId: string; title: string; abstract?: string };
+type GraphPayload = any;
+type ProjectMemorySummary = any;
+type ClaimCheckResult = any;
+type GroundedDiscussionAnswer = any;
+type ClaimDiscussionThread = any;
+type BusyState = null | "project" | "manuscript" | "upload" | "claim" | "mapping" | "check" | "memory" | "discussion";
+type DiscussionMode = "auto" | "deterministic" | "llm";
 
 async function readJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
@@ -181,25 +26,33 @@ async function readJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   return payload;
 }
 
-function objectLabel(kind: IntakeKind) {
-  switch (kind) {
-    case "claim":
-      return "Claim";
-    case "figure":
-      return "Figure";
-    case "method":
-      return "Method block";
-    case "limitation":
-      return "Limitation";
-    case "citation":
-      return "Reference";
-    case "note":
-      return "Interpretive note";
+async function uploadSupport(formData: FormData) {
+  const response = await fetch("/api/support-assets", { method: "POST", body: formData });
+  const payload = (await response.json().catch(() => ({}))) as { error?: unknown };
+
+  if (!response.ok) {
+    throw new Error(typeof payload.error === "string" ? payload.error : `Upload failed with status ${response.status}.`);
   }
+
+  return payload;
 }
 
 function claimTitle(text: string) {
-  return text.length > 84 ? `${text.slice(0, 81)}...` : text;
+  return text.length > 88 ? `${text.slice(0, 85)}...` : text;
+}
+
+function supportCategoryLabel(category: "image" | "data" | "text") {
+  if (category === "image") return "Figure / image";
+  if (category === "data") return "CSV / data";
+  return "TXT / text";
+}
+
+function nextAction(trust: any, result: any) {
+  if (!trust) return "Create or select a claim, then map uploaded evidence to it.";
+  if (result?.stale) return "Re-run the claim check because the support bundle changed.";
+  if ((trust.blockers?.length ?? 0) > 0) return trust.blockers[0]?.message ?? "Resolve the top blocker.";
+  if ((result?.recommendedNextActions?.length ?? 0) > 0) return result.recommendedNextActions[0];
+  return "Review the current interpretation and confirm or reject the support links that still look uncertain.";
 }
 
 export default function ResearchStudioClient() {
@@ -208,34 +61,22 @@ export default function ResearchStudioClient() {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [selectedManuscriptId, setSelectedManuscriptId] = useState("");
   const [selectedClaimId, setSelectedClaimId] = useState("");
-  const [comparisonClaimId, setComparisonClaimId] = useState("");
+  const [selectedSupportAssetId, setSelectedSupportAssetId] = useState("");
   const [graph, setGraph] = useState<GraphPayload | null>(null);
   const [memory, setMemory] = useState<ProjectMemorySummary | null>(null);
+  const [claimCheckResult, setClaimCheckResult] = useState<ClaimCheckResult | null>(null);
   const [discussion, setDiscussion] = useState<GroundedDiscussionAnswer | null>(null);
-  const [discussionHistory, setDiscussionHistory] = useState<DiscussionTurn[]>([]);
   const [claimDiscussionThread, setClaimDiscussionThread] = useState<ClaimDiscussionThread | null>(null);
+  const [busyState, setBusyState] = useState<BusyState>(null);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("Loading research studio...");
-  const [discussionFocusMode, setDiscussionFocusMode] = useState<DiscussionFocusMode>("project");
-  const [discussionMode, setDiscussionMode] = useState<DiscussionRequestMode>("auto");
-  const [intakeKind, setIntakeKind] = useState<IntakeKind>("claim");
+  const [message, setMessage] = useState("Loading claim-check surface...");
+  const [discussionMode, setDiscussionMode] = useState<DiscussionMode>("auto");
+  const [discussionQuestion, setDiscussionQuestion] = useState("Why does this evidence only moderately support the active claim?");
   const [projectForm, setProjectForm] = useState({ name: "", description: "" });
   const [manuscriptForm, setManuscriptForm] = useState({ title: "", abstract: "" });
   const [claimForm, setClaimForm] = useState({ text: "" });
-  const [figureForm, setFigureForm] = useState({ figureNumber: "", title: "", caption: "" });
-  const [methodForm, setMethodForm] = useState({ title: "", content: "" });
-  const [limitationForm, setLimitationForm] = useState({ text: "", severityOrImportance: "moderate" });
-  const [citationForm, setCitationForm] = useState({
-    citationKey: "",
-    title: "",
-    authors: "",
-    year: "",
-    doi: "",
-    url: ""
-  });
-  const [noteForm, setNoteForm] = useState({ text: "" });
-  const [busyState, setBusyState] = useState<null | "project" | "manuscript" | "intake" | "memory" | "discussion">(null);
-  const [question, setQuestion] = useState("What are the strongest claims?");
+  const [uploadForm, setUploadForm] = useState({ title: "", caption: "", summary: "" });
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   async function refreshProjects() {
     const payload = await readJson<{ projects: Project[] }>("/api/projects");
@@ -274,20 +115,31 @@ export default function ResearchStudioClient() {
     setMemory(payload.memory);
   }
 
-  async function digestMemory(projectId = selectedProjectId) {
-    if (!projectId) return;
-    const payload = await readJson<{ memory: ProjectMemorySummary }>("/api/project-memory", {
-      method: "POST",
-      body: JSON.stringify({ projectId })
-    });
-    setMemory(payload.memory);
+  async function refreshClaimCheck(claimId = selectedClaimId, manuscriptId = selectedManuscriptId) {
+    if (!claimId) {
+      setClaimCheckResult(null);
+      return;
+    }
+
+    const payload = await readJson<{ result: ClaimCheckResult | null }>(`/api/claim-check?claimId=${claimId}&manuscriptId=${manuscriptId}`);
+    setClaimCheckResult(payload.result);
   }
 
-  async function withBusy(
-    kind: "project" | "manuscript" | "intake" | "memory" | "discussion",
-    action: () => Promise<void>,
-    success: string
-  ) {
+  async function refreshClaimDiscussion(claimId = selectedClaimId) {
+    if (!claimId) {
+      setClaimDiscussionThread(null);
+      return;
+    }
+
+    try {
+      const payload = await readJson<{ thread: ClaimDiscussionThread }>(`/api/claim-discussions?claimId=${claimId}`);
+      setClaimDiscussionThread(payload.thread);
+    } catch {
+      setClaimDiscussionThread(null);
+    }
+  }
+
+  async function withBusy(kind: BusyState, action: () => Promise<void>, success: string) {
     setBusyState(kind);
     try {
       await action();
@@ -306,19 +158,18 @@ export default function ResearchStudioClient() {
         const nextProjects = await refreshProjects();
         const nextProjectId = nextProjects[0]?.id ?? "";
         setSelectedProjectId(nextProjectId);
+        const nextManuscripts = nextProjectId ? await refreshManuscripts(nextProjectId) : [];
+        const nextManuscriptId = nextManuscripts[0]?.id ?? "";
+        setSelectedManuscriptId(nextManuscriptId);
 
-        if (nextProjectId) {
-          const nextManuscripts = await refreshManuscripts(nextProjectId);
-          const nextManuscriptId = nextManuscripts[0]?.id ?? "";
-          setSelectedManuscriptId(nextManuscriptId);
-
-          await Promise.all([refreshMemory(nextProjectId), nextManuscriptId ? refreshGraph(nextManuscriptId) : Promise.resolve()]);
-          setMessage("Research studio loaded.");
+        if (nextProjectId && nextManuscriptId) {
+          await Promise.all([refreshGraph(nextManuscriptId), refreshMemory(nextProjectId)]);
+          setMessage("Claim-check surface loaded.");
         } else {
-          setMessage("Create a project and a working manuscript to start the intake-memory-discussion flow.");
+          setMessage("Create a project and manuscript to start evidence-first claim checking.");
         }
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Research studio failed to load.");
+        setMessage(error instanceof Error ? error.message : "Claim-check surface failed to load.");
       } finally {
         setLoading(false);
       }
@@ -331,9 +182,6 @@ export default function ResearchStudioClient() {
     if (!selectedProjectId) return;
 
     void (async () => {
-      setDiscussion(null);
-      setDiscussionHistory([]);
-      setClaimDiscussionThread(null);
       const nextManuscripts = await refreshManuscripts(selectedProjectId);
       if (!nextManuscripts.some((item) => item.id === selectedManuscriptId)) {
         setSelectedManuscriptId(nextManuscripts[0]?.id ?? "");
@@ -352,253 +200,66 @@ export default function ResearchStudioClient() {
   }, [selectedManuscriptId]);
 
   useEffect(() => {
-    const claimIds = graph?.claims.map((claim) => claim.id) ?? [];
+    const claimIds = graph?.claims?.map((claim: any) => claim.id) ?? [];
     if (!claimIds.includes(selectedClaimId)) {
       setSelectedClaimId(claimIds[0] ?? "");
     }
-    if (comparisonClaimId && !claimIds.includes(comparisonClaimId)) {
-      setComparisonClaimId("");
-    }
-  }, [graph?.claims, selectedClaimId, comparisonClaimId]);
+  }, [graph?.claims, selectedClaimId]);
 
   useEffect(() => {
-    if (discussionFocusMode === "claim" && !selectedClaimId) {
-      setDiscussionFocusMode("project");
+    const assetIds = graph?.supportAssets?.map((asset: any) => asset.id) ?? [];
+    if (!assetIds.includes(selectedSupportAssetId)) {
+      setSelectedSupportAssetId(assetIds[0] ?? "");
     }
-
-    if (discussionFocusMode === "comparison" && (!selectedClaimId || !comparisonClaimId)) {
-      setDiscussionFocusMode(selectedClaimId ? "claim" : "project");
-    }
-  }, [comparisonClaimId, discussionFocusMode, selectedClaimId]);
+  }, [graph?.supportAssets, selectedSupportAssetId]);
 
   useEffect(() => {
-    if (!selectedClaimId) {
+    if (!selectedClaimId || !selectedManuscriptId) {
+      setClaimCheckResult(null);
       setClaimDiscussionThread(null);
       return;
     }
 
-    void (async () => {
-      try {
-        const payload = await readJson<{ thread: ClaimDiscussionThread }>(`/api/claim-discussions?claimId=${selectedClaimId}`);
-        setClaimDiscussionThread(payload.thread);
-      } catch {
-        setClaimDiscussionThread(null);
-      }
-    })();
-  }, [selectedClaimId]);
+    void Promise.all([refreshClaimCheck(selectedClaimId, selectedManuscriptId), refreshClaimDiscussion(selectedClaimId)]);
+  }, [selectedClaimId, selectedManuscriptId]);
 
-  const currentClaim = useMemo(
-    () => graph?.claims.find((claim) => claim.id === selectedClaimId) ?? null,
-    [graph?.claims, selectedClaimId]
-  );
+  const currentClaim = graph?.claims?.find((claim: any) => claim.id === selectedClaimId) ?? null;
+  const currentFraming = graph?.claimFramingAssessments?.find((assessment: any) => assessment.claimId === selectedClaimId) ?? null;
+  const currentTrust = graph?.claimTrustReadiness?.find((contract: any) => contract.claimId === selectedClaimId) ?? null;
+  const currentAnalysis = memory?.claimAnalyses?.find((analysis: any) => analysis.claimId === selectedClaimId) ?? null;
+  const supportAssets = graph?.supportAssets ?? [];
 
-  const currentClaimAnalysis = useMemo(
-    () => memory?.claimAnalyses.find((analysis) => analysis.claimId === selectedClaimId) ?? null,
-    [memory?.claimAnalyses, selectedClaimId]
-  );
+  const mappedSupportAssets = useMemo(() => {
+    if (!currentClaim) return [];
+    return supportAssets.filter(
+      (asset: any) => asset.linkedClaimIds.includes(currentClaim.id) || asset.claimLinks.some((link: any) => link.claimId === currentClaim.id)
+    );
+  }, [currentClaim, supportAssets]);
 
-  const currentClaimFraming = useMemo(
-    () => graph?.claimFramingAssessments?.find((assessment) => assessment.claimId === selectedClaimId) ?? null,
-    [graph?.claimFramingAssessments, selectedClaimId]
-  );
+  const selectedSupportAsset =
+    supportAssets.find((asset: any) => asset.id === selectedSupportAssetId) ?? mappedSupportAssets[0] ?? null;
 
-  const comparisonClaimAnalysis = useMemo(
-    () => memory?.claimAnalyses.find((analysis) => analysis.claimId === comparisonClaimId) ?? null,
-    [memory?.claimAnalyses, comparisonClaimId]
-  );
-
-  const focusClaimIds = useMemo(() => {
-    if (discussionFocusMode === "comparison") {
-      return [selectedClaimId, comparisonClaimId].filter(Boolean);
-    }
-
-    if (discussionFocusMode === "claim") {
-      return [selectedClaimId].filter(Boolean);
-    }
-
-    return [];
-  }, [comparisonClaimId, discussionFocusMode, selectedClaimId]);
-
-  const intakeInbox = useMemo(() => {
-    if (!graph) return [];
-
-    return [
-      ...graph.claims.map((claim) => ({ id: claim.id, kind: "claim" as const, title: claimTitle(claim.text), detail: claim.claimType })),
-      ...graph.figures.map((figure) => ({ id: figure.id, kind: "figure" as const, title: figure.title, detail: figure.figureNumber ? `Figure ${figure.figureNumber}` : "Figure" })),
-      ...graph.methods.map((method) => ({ id: method.id, kind: "method" as const, title: method.title, detail: "Method block" })),
-      ...graph.limitations.map((limitation) => ({ id: limitation.id, kind: "limitation" as const, title: claimTitle(limitation.text), detail: "Limitation" })),
-      ...graph.citations.map((citation) => ({ id: citation.id, kind: "citation" as const, title: citation.title, detail: citation.citationKey })),
-      ...graph.evidence.filter((item) => item.evidenceType === "note").map((note) => ({ id: note.id, kind: "note" as const, title: claimTitle(note.summary), detail: "Interpretive note" }))
-    ].slice(0, 18);
-  }, [graph]);
-
-  async function submitIntake() {
-    if (!selectedManuscriptId) {
-      throw new Error("Select a manuscript before adding research objects.");
-    }
-
-    if (intakeKind === "claim") {
-      await readJson("/api/claims", {
-        method: "POST",
-        body: JSON.stringify({
-          manuscriptId: selectedManuscriptId,
-          text: claimForm.text
-        })
-      });
-      setClaimForm({ text: "" });
-    }
-
-    if (intakeKind === "figure") {
-      await readJson("/api/figures", {
-        method: "POST",
-        body: JSON.stringify({
-          manuscriptId: selectedManuscriptId,
-          figureNumber: figureForm.figureNumber || undefined,
-          title: figureForm.title,
-          caption: figureForm.caption,
-          linkedClaimIds: selectedClaimId ? [selectedClaimId] : []
-        })
-      });
-      setFigureForm({ figureNumber: "", title: "", caption: "" });
-    }
-
-    if (intakeKind === "method") {
-      await readJson("/api/methods", {
-        method: "POST",
-        body: JSON.stringify({
-          manuscriptId: selectedManuscriptId,
-          title: methodForm.title,
-          content: methodForm.content,
-          linkedClaimIds: selectedClaimId ? [selectedClaimId] : []
-        })
-      });
-      setMethodForm({ title: "", content: "" });
-    }
-
-    if (intakeKind === "limitation") {
-      await readJson("/api/limitations", {
-        method: "POST",
-        body: JSON.stringify({
-          manuscriptId: selectedManuscriptId,
-          text: limitationForm.text,
-          severityOrImportance: limitationForm.severityOrImportance,
-          linkedClaimIds: selectedClaimId ? [selectedClaimId] : []
-        })
-      });
-      setLimitationForm({ text: "", severityOrImportance: "moderate" });
-    }
-
-    if (intakeKind === "citation") {
-      await readJson("/api/citations", {
-        method: "POST",
-        body: JSON.stringify({
-          manuscriptId: selectedManuscriptId,
-          citationKey: citationForm.citationKey,
-          title: citationForm.title,
-          authors: citationForm.authors.split(",").map((item) => item.trim()).filter(Boolean),
-          year: citationForm.year ? Number(citationForm.year) : undefined,
-          doi: citationForm.doi || undefined,
-          url: citationForm.url || undefined,
-          linkedClaimIds: selectedClaimId ? [selectedClaimId] : []
-        })
-      });
-      setCitationForm({ citationKey: "", title: "", authors: "", year: "", doi: "", url: "" });
-    }
-
-    if (intakeKind === "note") {
-      await readJson("/api/evidence", {
-        method: "POST",
-        body: JSON.stringify({
-          manuscriptId: selectedManuscriptId,
-          evidenceType: "note",
-          summary: noteForm.text,
-          linkedClaimIds: selectedClaimId ? [selectedClaimId] : [],
-          confidenceNotes: currentClaim ? `Interpretive note for claim ${currentClaim.id}` : undefined
-        })
-      });
-      setNoteForm({ text: "" });
-    }
-
-    await Promise.all([refreshGraph(selectedManuscriptId), digestMemory(selectedProjectId)]);
+  if (loading) {
+    return (
+      <section className="card">
+        <p>{message}</p>
+      </section>
+    );
   }
-
-  async function submitDiscussion(nextQuestion = question) {
-    if (discussionFocusMode === "claim" && selectedClaimId) {
-      const payload = await readJson<{ thread: ClaimDiscussionThread; answer: GroundedDiscussionAnswer }>("/api/claim-discussions", {
-        method: "POST",
-        body: JSON.stringify({
-          claimId: selectedClaimId,
-          question: nextQuestion,
-          requestedMode: discussionMode
-        })
-      });
-
-      setClaimDiscussionThread(payload.thread);
-      setDiscussion(payload.answer);
-      return;
-    }
-
-    const payload = await readJson<{ answer: GroundedDiscussionAnswer }>("/api/discussion", {
-      method: "POST",
-      body: JSON.stringify({
-        projectId: selectedProjectId,
-        question: nextQuestion,
-        claimIds: focusClaimIds,
-        requestedMode: discussionMode
-      })
-    });
-
-    setDiscussion(payload.answer);
-    setDiscussionHistory((current) => [
-      {
-        ...payload.answer,
-        id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        createdAt: new Date().toISOString()
-      },
-      ...current
-    ].slice(0, 8));
-  }
-
-  function applyDiscussionTurn(turn: GroundedDiscussionAnswer) {
-    setQuestion(turn.question);
-    const primaryGroundedClaim = turn.groundedContext.claims[0];
-    if (primaryGroundedClaim) {
-      setSelectedManuscriptId(primaryGroundedClaim.manuscriptId);
-    }
-    if (turn.focus.scope === "comparison") {
-      setDiscussionFocusMode("comparison");
-      setSelectedClaimId(turn.focus.primaryClaimId ?? "");
-      setComparisonClaimId(turn.focus.comparisonClaimId ?? "");
-    } else if (turn.focus.scope === "claim") {
-      setDiscussionFocusMode("claim");
-      setSelectedClaimId(turn.focus.primaryClaimId ?? "");
-      setComparisonClaimId("");
-    } else {
-      setDiscussionFocusMode("project");
-      setComparisonClaimId("");
-    }
-    setDiscussion(turn);
-  }
-
-  const messageToneClass =
-    message.toLowerCase().includes("failed") || message.toLowerCase().includes("error") ? "blocking" : "muted";
 
   return (
-    <section>
-      <p className="eyebrow">Research Intake / Memory / Discussion Prototype</p>
+    <section className="card">
       <div className="workspace-header">
         <div>
-          <h1>Research Studio</h1>
-          <p className="muted">
-            Bring research objects into a shared project memory, let the system digest claim support, and discuss the
-            paper from grounded memory before full manuscript generation.
-          </p>
+          <p className="eyebrow">Main product flow</p>
+          <h1>Claim Check</h1>
+          <p className="muted">Upload evidence first, map it to a claim, run a claim-specific check, and save the result into shared project memory.</p>
         </div>
         <div className="workspace-toolbar">
           <label>
             Project
             <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)}>
-              <option value="">Select project</option>
+              <option value="">Select a project</option>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
@@ -606,10 +267,10 @@ export default function ResearchStudioClient() {
               ))}
             </select>
           </label>
-          <label>
+          <label className="workspace-session">
             Manuscript
             <select value={selectedManuscriptId} onChange={(event) => setSelectedManuscriptId(event.target.value)}>
-              <option value="">Select manuscript</option>
+              <option value="">Select a manuscript</option>
               {manuscripts.map((manuscript) => (
                 <option key={manuscript.id} value={manuscript.id}>
                   {manuscript.title}
@@ -617,682 +278,474 @@ export default function ResearchStudioClient() {
               ))}
             </select>
           </label>
-          <button
-            type="button"
-            disabled={busyState === "memory" || !selectedProjectId}
-            onClick={() =>
-              void withBusy("memory", async () => {
-                await digestMemory(selectedProjectId);
-              }, "Project memory digested and refreshed.")
-            }
-          >
-            {busyState === "memory" ? "Digesting memory..." : "Digest project memory"}
-          </button>
+          <p className="muted">{message}</p>
         </div>
       </div>
 
-      <p className={messageToneClass}>{message}</p>
-
-      {!projects.length && !loading ? (
-        <article className="card workspace-empty">
-          <h2>Start a research project</h2>
-          <p className="muted">Create a project and a working manuscript so the studio has a place to remember your research objects.</p>
-          <div className="qa-inline">
-            <label>
-              Project name
-              <input value={projectForm.name} onChange={(event) => setProjectForm({ ...projectForm, name: event.target.value })} />
-            </label>
-            <label>
-              Project note
-              <input value={projectForm.description} onChange={(event) => setProjectForm({ ...projectForm, description: event.target.value })} />
-            </label>
-          </div>
-          <button
-            type="button"
-            disabled={busyState === "project" || !projectForm.name.trim()}
-            onClick={() =>
-              void withBusy("project", async () => {
-                const payload = await readJson<{ project: Project }>("/api/projects", {
-                  method: "POST",
-                  body: JSON.stringify(projectForm)
-                });
-                setProjectForm({ name: "", description: "" });
-                const nextProjects = await refreshProjects();
-                setSelectedProjectId(payload.project.id ?? nextProjects[0]?.id ?? "");
-              }, "Project created. Add a working manuscript next.")
-            }
-          >
-            {busyState === "project" ? "Creating project..." : "Create project"}
-          </button>
-        </article>
-      ) : null}
-
-      {selectedProjectId && !manuscripts.length ? (
-        <article className="card workspace-empty">
-          <h2>Add a working manuscript</h2>
-          <p className="muted">The research memory graph is project-scoped, but the current intake prototype still stores objects inside a working manuscript.</p>
-          <div className="qa-inline">
-            <label>
-              Manuscript title
-              <input value={manuscriptForm.title} onChange={(event) => setManuscriptForm({ ...manuscriptForm, title: event.target.value })} />
-            </label>
-            <label>
-              Abstract note
-              <input value={manuscriptForm.abstract} onChange={(event) => setManuscriptForm({ ...manuscriptForm, abstract: event.target.value })} />
-            </label>
-          </div>
-          <button
-            type="button"
-            disabled={busyState === "manuscript" || !manuscriptForm.title.trim()}
-            onClick={() =>
-              void withBusy("manuscript", async () => {
-                const payload = await readJson<{ manuscript: Manuscript }>("/api/manuscripts", {
-                  method: "POST",
-                  body: JSON.stringify({
-                    projectId: selectedProjectId,
-                    title: manuscriptForm.title,
-                    abstract: manuscriptForm.abstract
-                  })
-                });
-                setManuscriptForm({ title: "", abstract: "" });
-                await refreshManuscripts(selectedProjectId);
-                setSelectedManuscriptId(payload.manuscript.id);
-              }, "Working manuscript created.")
-            }
-          >
-            {busyState === "manuscript" ? "Creating manuscript..." : "Create working manuscript"}
-          </button>
-        </article>
-      ) : null}
-
-      <div className="workspace author-workspace research-studio">
+      <div className="workspace">
         <aside className="card workspace-column workspace-left">
-          <h2>Layer 1: Research intake</h2>
-          <p className="muted">Add structured research objects quickly, then let the system digest them into shared memory.</p>
+          <h2>1. Upload evidence</h2>
+          <p className="muted">The product starts with figures, CSVs, and TXT support files, not with manuscript controls.</p>
+
           <div className="workspace-subsection workspace-subsection-first">
+            <h3>Quick start</h3>
             <label>
-              Add object type
-              <select value={intakeKind} onChange={(event) => setIntakeKind(event.target.value as IntakeKind)}>
-                <option value="claim">Claim</option>
-                <option value="figure">Figure / image</option>
-                <option value="method">Method block</option>
-                <option value="limitation">Limitation</option>
-                <option value="citation">Reference</option>
-                <option value="note">Interpretive note</option>
-              </select>
+              New project
+              <input value={projectForm.name} onChange={(event) => setProjectForm((current) => ({ ...current, name: event.target.value }))} />
             </label>
             <label>
-              Link to current claim
-              <select value={selectedClaimId} onChange={(event) => setSelectedClaimId(event.target.value)}>
-                <option value="">No claim selected</option>
-                {(graph?.claims ?? []).map((claim) => (
-                  <option key={claim.id} value={claim.id}>
-                    {claimTitle(claim.text)}
-                  </option>
-                ))}
-              </select>
+              Description
+              <textarea rows={3} value={projectForm.description} onChange={(event) => setProjectForm((current) => ({ ...current, description: event.target.value }))} />
             </label>
-
-            {intakeKind === "claim" ? (
-              <>
-                <label>
-                  Claim text
-                  <textarea value={claimForm.text} rows={4} onChange={(event) => setClaimForm({ ...claimForm, text: event.target.value })} />
-                </label>
-                <p className="muted">
-                  The system will judge claim type and strength after you save the text, and store that framing with the claim.
-                </p>
-              </>
-            ) : null}
-
-            {intakeKind === "figure" ? (
-              <>
-                <div className="qa-inline">
-                  <label>
-                    Figure number
-                    <input value={figureForm.figureNumber} onChange={(event) => setFigureForm({ ...figureForm, figureNumber: event.target.value })} />
-                  </label>
-                  <label>
-                    Title
-                    <input value={figureForm.title} onChange={(event) => setFigureForm({ ...figureForm, title: event.target.value })} />
-                  </label>
-                </div>
-                <label>
-                  Caption / result note
-                  <textarea value={figureForm.caption} rows={4} onChange={(event) => setFigureForm({ ...figureForm, caption: event.target.value })} />
-                </label>
-              </>
-            ) : null}
-
-            {intakeKind === "method" ? (
-              <>
-                <label>
-                  Method title
-                  <input value={methodForm.title} onChange={(event) => setMethodForm({ ...methodForm, title: event.target.value })} />
-                </label>
-                <label>
-                  Method block
-                  <textarea value={methodForm.content} rows={5} onChange={(event) => setMethodForm({ ...methodForm, content: event.target.value })} />
-                </label>
-              </>
-            ) : null}
-
-            {intakeKind === "limitation" ? (
-              <>
-                <label>
-                  Limitation text
-                  <textarea value={limitationForm.text} rows={4} onChange={(event) => setLimitationForm({ ...limitationForm, text: event.target.value })} />
-                </label>
-                <label>
-                  Importance
-                  <select value={limitationForm.severityOrImportance} onChange={(event) => setLimitationForm({ ...limitationForm, severityOrImportance: event.target.value })}>
-                    <option value="low">low</option>
-                    <option value="moderate">moderate</option>
-                    <option value="high">high</option>
-                  </select>
-                </label>
-              </>
-            ) : null}
-
-            {intakeKind === "citation" ? (
-              <>
-                <div className="qa-inline">
-                  <label>
-                    Citation key
-                    <input value={citationForm.citationKey} onChange={(event) => setCitationForm({ ...citationForm, citationKey: event.target.value })} />
-                  </label>
-                  <label>
-                    Year
-                    <input value={citationForm.year} onChange={(event) => setCitationForm({ ...citationForm, year: event.target.value })} />
-                  </label>
-                </div>
-                <label>
-                  Title
-                  <input value={citationForm.title} onChange={(event) => setCitationForm({ ...citationForm, title: event.target.value })} />
-                </label>
-                <label>
-                  Authors
-                  <input value={citationForm.authors} onChange={(event) => setCitationForm({ ...citationForm, authors: event.target.value })} placeholder="Comma-separated authors" />
-                </label>
-                <div className="qa-inline">
-                  <label>
-                    DOI
-                    <input value={citationForm.doi} onChange={(event) => setCitationForm({ ...citationForm, doi: event.target.value })} />
-                  </label>
-                  <label>
-                    URL
-                    <input value={citationForm.url} onChange={(event) => setCitationForm({ ...citationForm, url: event.target.value })} />
-                  </label>
-                </div>
-              </>
-            ) : null}
-
-            {intakeKind === "note" ? (
-              <label>
-                Interpretation note
-                <textarea
-                  value={noteForm.text}
-                  rows={4}
-                  onChange={(event) => setNoteForm({ ...noteForm, text: event.target.value })}
-                  placeholder="Explain the logic behind the result or why a figure seems to support a claim."
-                />
-              </label>
-            ) : null}
-
             <button
               type="button"
-              disabled={
-                busyState === "intake" ||
-                !selectedManuscriptId ||
-                (intakeKind === "claim" && !claimForm.text.trim()) ||
-                (intakeKind === "figure" && (!figureForm.title.trim() || !figureForm.caption.trim())) ||
-                (intakeKind === "method" && (!methodForm.title.trim() || !methodForm.content.trim())) ||
-                (intakeKind === "limitation" && !limitationForm.text.trim()) ||
-                (intakeKind === "citation" &&
-                  (!citationForm.citationKey.trim() || !citationForm.title.trim() || !citationForm.authors.trim())) ||
-                (intakeKind === "note" && !noteForm.text.trim())
-              }
+              disabled={busyState === "project" || !projectForm.name.trim()}
               onClick={() =>
-                void withBusy("intake", async () => {
-                  await submitIntake();
-                }, `${objectLabel(intakeKind)} added to project memory.`)
+                void withBusy("project", async () => {
+                  const payload = await readJson<{ project: Project }>("/api/projects", {
+                    method: "POST",
+                    body: JSON.stringify(projectForm)
+                  });
+                  setProjectForm({ name: "", description: "" });
+                  await refreshProjects();
+                  setSelectedProjectId(payload.project.id);
+                }, "Project created.")
               }
             >
-              {busyState === "intake" ? "Adding to memory..." : `Add ${objectLabel(intakeKind).toLowerCase()}`}
+              {busyState === "project" ? "Creating project..." : "Create project"}
+            </button>
+            <label>
+              New manuscript
+              <input value={manuscriptForm.title} onChange={(event) => setManuscriptForm((current) => ({ ...current, title: event.target.value }))} />
+            </label>
+            <label>
+              Context
+              <textarea rows={3} value={manuscriptForm.abstract} onChange={(event) => setManuscriptForm((current) => ({ ...current, abstract: event.target.value }))} />
+            </label>
+            <button
+              type="button"
+              disabled={busyState === "manuscript" || !selectedProjectId || !manuscriptForm.title.trim()}
+              onClick={() =>
+                void withBusy("manuscript", async () => {
+                  const payload = await readJson<{ manuscript: Manuscript }>("/api/manuscripts", {
+                    method: "POST",
+                    body: JSON.stringify({ projectId: selectedProjectId, title: manuscriptForm.title, abstract: manuscriptForm.abstract })
+                  });
+                  setManuscriptForm({ title: "", abstract: "" });
+                  await refreshManuscripts(selectedProjectId);
+                  setSelectedManuscriptId(payload.manuscript.id);
+                }, "Manuscript created.")
+              }
+            >
+              {busyState === "manuscript" ? "Creating manuscript..." : "Create manuscript"}
             </button>
           </div>
 
           <div className="workspace-subsection">
-            <h3>Intake inbox</h3>
-            {intakeInbox.length ? (
-              intakeInbox.map((item) => (
-                <div key={`${item.kind}-${item.id}`} className="workspace-object-card">
-                  <p>
-                    <strong>{objectLabel(item.kind)}</strong> | {item.title}
-                  </p>
-                  <p className="muted">{item.detail}</p>
-                </div>
-              ))
+            <h3>Upload support file</h3>
+            <label>
+              File
+              <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.csv,.txt" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} />
+            </label>
+            <label>
+              Optional title
+              <input value={uploadForm.title} onChange={(event) => setUploadForm((current) => ({ ...current, title: event.target.value }))} />
+            </label>
+            <label>
+              Optional caption
+              <textarea rows={3} value={uploadForm.caption} onChange={(event) => setUploadForm((current) => ({ ...current, caption: event.target.value }))} />
+            </label>
+            <label>
+              Optional summary
+              <textarea rows={3} value={uploadForm.summary} onChange={(event) => setUploadForm((current) => ({ ...current, summary: event.target.value }))} />
+            </label>
+            <button
+              type="button"
+              disabled={busyState === "upload" || !selectedManuscriptId || !uploadFile}
+              onClick={() =>
+                void withBusy("upload", async () => {
+                  const formData = new FormData();
+                  formData.set("manuscriptId", selectedManuscriptId);
+                  formData.set("file", uploadFile!);
+                  if (uploadForm.title.trim()) formData.set("title", uploadForm.title);
+                  if (uploadForm.caption.trim()) formData.set("caption", uploadForm.caption);
+                  if (uploadForm.summary.trim()) formData.set("summary", uploadForm.summary);
+                  await uploadSupport(formData);
+                  setUploadForm({ title: "", caption: "", summary: "" });
+                  setUploadFile(null);
+                  await Promise.all([refreshGraph(selectedManuscriptId), refreshMemory(selectedProjectId)]);
+                }, "Support uploaded.")
+              }
+            >
+              {busyState === "upload" ? "Uploading..." : "Upload support"}
+            </button>
+          </div>
+          <div className="workspace-subsection">
+            <h3>Support library</h3>
+            {supportAssets.length ? (
+              supportAssets.map((asset: any) => {
+                const status = currentClaim ? asset.claimLinks.find((link: any) => link.claimId === currentClaim.id)?.status : undefined;
+                return (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    className={`workspace-claim-button${selectedSupportAssetId === asset.id ? " workspace-claim-button-active" : ""}`}
+                    onClick={() => setSelectedSupportAssetId(asset.id)}
+                  >
+                    <strong>{asset.originalFilename}</strong>
+                    <span className="workspace-claim-meta">
+                      <span className="pill">{supportCategoryLabel(asset.supportCategory)}</span>
+                      <span className={status === "confirmed" ? "pill" : status === "rejected" ? "warning" : "muted"}>
+                        {status ? `current claim: ${status}` : "not linked to current claim"}
+                      </span>
+                    </span>
+                    {asset.publicUrl && asset.supportCategory === "image" ? (
+                      <img src={asset.publicUrl} alt={asset.originalFilename} className="workspace-support-preview" />
+                    ) : null}
+                    {asset.textPreview ? <pre className="qa-pre">{asset.textPreview}</pre> : null}
+                    <p className="muted">
+                      Linked to {asset.linkedClaimIds.length} claim(s) through {asset.derivedEntityType}.
+                    </p>
+                  </button>
+                );
+              })
             ) : (
-              <p className="muted">No intake objects yet for the selected manuscript.</p>
+              <p className="muted">Upload an image, CSV, or TXT file to start the claim-check loop.</p>
             )}
           </div>
         </aside>
 
-        <article className="card workspace-column workspace-center">
-          <h2>Layer 2: Project memory</h2>
-          <p className="muted">The system digests claim-centered support bundles into shared project memory across the selected project.</p>
+        <article className="card workspace-column">
+          <h2>2. Claim check</h2>
+          <p className="muted">Create or select a claim, map the uploaded evidence bundle, run the check, and correct the interpretation when needed.</p>
 
           <div className="workspace-subsection workspace-subsection-first">
-            <h3>Memory summary</h3>
-            {memory ? (
-              <>
-                <div className="workspace-inline-status">
-                  <span className="pill">{memory.claimAnalyses.length} claims remembered</span>
-                  <span className="pill">{memory.authorConfirmedClaimIds.length} author-confirmed</span>
-                  <span className={memory.aiSuggestedClaimIds.length ? "warning" : "pill"}>{memory.aiSuggestedClaimIds.length} AI-suggested</span>
-                  <span className={memory.unresolvedContradictions.length ? "warning" : "pill"}>
-                    {memory.unresolvedContradictions.length} contradiction signal(s)
-                  </span>
-                </div>
-                <p className="muted">Last digested {new Date(memory.lastDigestedAt).toLocaleString()}</p>
-                <div className="workspace-object-card">
-                  <p>
-                    <strong>Strongest claims</strong>
-                  </p>
-                  {memory.strongestClaims.length ? (
-                    memory.strongestClaims.slice(0, 3).map((claim) => (
-                      <p key={claim.claimId} className="muted">
-                        {claim.scoreBand ?? "unassessed"} {claim.score}: {claimTitle(claim.claimText)}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="muted">No claims digested yet.</p>
-                  )}
-                </div>
-                <div className="workspace-object-card">
-                  <p>
-                    <strong>Weakest claims</strong>
-                  </p>
-                  {memory.weakestClaims.length ? (
-                    memory.weakestClaims.slice(0, 3).map((claim) => (
-                      <p key={claim.claimId} className="muted">
-                        {claim.scoreBand ?? "unassessed"} {claim.score}: {claimTitle(claim.claimText)}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="muted">No weak claims detected yet.</p>
-                  )}
-                </div>
-                <div className="workspace-object-card">
-                  <p>
-                    <strong>Claims missing support</strong>
-                  </p>
-                  {memory.claimsMissingSupport.length ? (
-                    memory.claimsMissingSupport.slice(0, 3).map((item) => (
-                      <p key={item.claimId} className="warning">
-                        {claimTitle(item.claimText)} - {item.gaps[0]}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="muted">No missing-support signals are active right now.</p>
-                  )}
-                </div>
-              </>
+            <h3>Create claim</h3>
+            <label>
+              Claim text
+              <textarea rows={4} value={claimForm.text} onChange={(event) => setClaimForm({ text: event.target.value })} />
+            </label>
+            <button
+              type="button"
+              disabled={busyState === "claim" || !selectedManuscriptId || !claimForm.text.trim()}
+              onClick={() =>
+                void withBusy("claim", async () => {
+                  const payload = await readJson<{ claim: any }>("/api/claims", {
+                    method: "POST",
+                    body: JSON.stringify({ manuscriptId: selectedManuscriptId, text: claimForm.text })
+                  });
+                  setClaimForm({ text: "" });
+                  await Promise.all([refreshGraph(selectedManuscriptId), refreshMemory(selectedProjectId)]);
+                  setSelectedClaimId(payload.claim.id);
+                }, "Claim created.")
+              }
+            >
+              {busyState === "claim" ? "Creating claim..." : "Create claim"}
+            </button>
+          </div>
+
+          <div className="workspace-subsection">
+            <h3>Claim list</h3>
+            {graph?.claims?.length ? (
+              <div className="workspace-claim-list">
+                {graph.claims.map((claim: any) => {
+                  const trust = graph?.claimTrustReadiness?.find((item: any) => item.claimId === claim.id);
+                  const validity = graph?.validityAssessments?.find((item: any) => item.claimId === claim.id);
+                  return (
+                    <button
+                      key={claim.id}
+                      type="button"
+                      className={`workspace-claim-button${selectedClaimId === claim.id ? " workspace-claim-button-active" : ""}`}
+                      onClick={() => setSelectedClaimId(claim.id)}
+                    >
+                      <strong>{claimTitle(claim.text)}</strong>
+                      <span className="workspace-claim-meta">
+                        <span className="pill">{claim.claimType}</span>
+                        <span className="pill">{claim.strengthLevel}</span>
+                        <span className={validity?.stale ? "warning" : "pill"}>
+                          {validity ? `${validity.scoreBand} ${validity.overallValidityScore}` : "unchecked"}
+                        </span>
+                        <span className={trust?.blockers?.length ? "warning" : "pill"}>
+                          {trust?.lifecycleState?.replaceAll("_", " ") ?? "draft"}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             ) : (
-              <p className="muted">Digest project memory to build the first shared claim analysis view.</p>
+              <p className="muted">No claims yet. Create one after uploading the first support file.</p>
             )}
           </div>
 
           <div className="workspace-subsection">
-            <h3>Claim analyses</h3>
-            {memory?.claimAnalyses.length ? (
-              memory.claimAnalyses.map((analysis) => (
-                <button
-                  key={analysis.claimId}
-                  type="button"
-                  className={`workspace-claim-button${selectedClaimId === analysis.claimId ? " workspace-claim-button-active" : ""}`}
-                  onClick={() => {
-                    setSelectedManuscriptId(analysis.manuscriptId);
-                    setSelectedClaimId(analysis.claimId);
-                    setDiscussionFocusMode("claim");
-                    setQuestion("Why is this claim only moderate validity?");
-                  }}
-                >
-                  <strong>{claimTitle(analysis.claimText)}</strong>
-                  <span className="workspace-claim-meta">
-                    <span className={analysis.validityAssessment ? "pill" : "warning"}>
-                      {analysis.validityAssessment
-                        ? `${analysis.validityAssessment.scoreBand} ${analysis.validityAssessment.overallValidityScore}`
-                        : "validity pending"}
-                    </span>
-                    <span className={analysis.trustReadiness.blockers.length ? "warning" : "pill"}>
-                      {analysis.trustReadiness.lifecycleState.replaceAll("_", " ")}
-                    </span>
-                    <span className={analysis.authorConfirmed ? "pill" : "warning"}>
-                      {analysis.authorConfirmed ? "author-confirmed" : "not author-confirmed"}
-                    </span>
+            <h3>Active claim</h3>
+            {currentClaim ? (
+              <>
+                <p className="workspace-claim-text">{currentClaim.text}</p>
+                <div className="workspace-inline-status">
+                  <span className="pill">AI claim type: {currentFraming?.suggestedClaimType ?? currentClaim.claimType}</span>
+                  <span className="pill">AI strength: {currentFraming?.suggestedStrengthLevel ?? currentClaim.strengthLevel}</span>
+                  <span className={currentTrust?.stale ? "warning" : "pill"}>
+                    {currentTrust?.lifecycleState?.replaceAll("_", " ") ?? "draft"}
                   </span>
-                  <p className="muted">
-                    Support bundle: {analysis.supportBundle.evidenceIds.length} evidence, {analysis.supportBundle.methodIds.length} methods,{" "}
-                    {analysis.supportBundle.limitationIds.length} limitations
-                  </p>
-                  {analysis.unresolvedSupportGaps.slice(0, 2).map((gap) => (
-                    <p key={gap} className="warning">
-                      {gap}
-                    </p>
-                  ))}
-                </button>
-              ))
+                </div>
+                {currentFraming ? <p className="muted">{currentFraming.rationale}</p> : null}
+                <p className={currentTrust?.blockers?.length ? "warning" : "muted"}>{nextAction(currentTrust, claimCheckResult)}</p>
+              </>
             ) : (
-              <p className="muted">No claim analyses yet. Add intake objects, then digest project memory.</p>
+              <p className="muted">Select a claim to map the evidence bundle and run the check.</p>
+            )}
+          </div>
+
+          <div className="workspace-subsection">
+            <h3>Map support to the active claim</h3>
+            {currentClaim && selectedSupportAsset ? (
+              <>
+                <div className="workspace-object-card">
+                  <p>
+                    <strong>{selectedSupportAsset.originalFilename}</strong>
+                  </p>
+                  <p className="muted">
+                    {supportCategoryLabel(selectedSupportAsset.supportCategory)} via {selectedSupportAsset.derivedEntityType}
+                  </p>
+                  <div className="workspace-inline-status">
+                    {["proposed", "confirmed", "rejected"].map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        disabled={busyState === "mapping"}
+                        onClick={() =>
+                          void withBusy("mapping", async () => {
+                            await readJson("/api/support-mappings", {
+                              method: "POST",
+                              body: JSON.stringify({
+                                manuscriptId: selectedManuscriptId,
+                                supportAssetId: selectedSupportAsset.id,
+                                claimId: currentClaim.id,
+                                status
+                              })
+                            });
+                            await Promise.all([refreshGraph(selectedManuscriptId), refreshMemory(selectedProjectId), refreshClaimCheck(currentClaim.id, selectedManuscriptId)]);
+                          }, `Support link ${status}.`)
+                        }
+                      >
+                        {status === "proposed" ? "Propose link" : status === "confirmed" ? "Confirm support" : "Reject interpretation"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="workspace-object-card">
+                  <p>
+                    <strong>Linked support for this claim</strong>
+                  </p>
+                  {mappedSupportAssets.length ? (
+                    mappedSupportAssets.map((asset: any) => {
+                      const status = asset.claimLinks.find((link: any) => link.claimId === currentClaim.id)?.status;
+                      return (
+                        <p key={asset.id} className={status === "confirmed" ? "muted" : "warning"}>
+                          {asset.originalFilename} - {status ?? "proposed"} via {asset.derivedEntityType}
+                        </p>
+                      );
+                    })
+                  ) : (
+                    <p className="muted">No support files are linked to this claim yet.</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="muted">Choose both a claim and a support file to control the mapping.</p>
+            )}
+          </div>
+
+          <div className="workspace-subsection">
+            <h3>Run claim-specific check</h3>
+            <button
+              type="button"
+              disabled={busyState === "check" || !currentClaim}
+              onClick={() =>
+                currentClaim &&
+                void withBusy("check", async () => {
+                  const payload = await readJson<{ result: ClaimCheckResult }>("/api/claim-check", {
+                    method: "POST",
+                    body: JSON.stringify({ manuscriptId: selectedManuscriptId, claimId: currentClaim.id })
+                  });
+                  setClaimCheckResult(payload.result);
+                  await Promise.all([refreshGraph(selectedManuscriptId), refreshMemory(selectedProjectId)]);
+                }, "Claim check completed and stored in shared memory.")
+              }
+            >
+              {busyState === "check" ? "Checking claim..." : "Run claim check"}
+            </button>
+          </div>
+
+          <div className="workspace-subsection">
+            <h3>Claim-check result</h3>
+            {claimCheckResult ? (
+              <div className="workspace-object-card">
+                <div className="workspace-inline-status">
+                  <span className="pill">{claimCheckResult.validityAssessment.scoreBand} {claimCheckResult.validityAssessment.overallValidityScore}</span>
+                  <span className={claimCheckResult.stale ? "warning" : "pill"}>{claimCheckResult.stale ? "stale" : "current"}</span>
+                  <span className={claimCheckResult.overclaimRisk.level === "high" ? "warning" : "pill"}>
+                    overclaim risk: {claimCheckResult.overclaimRisk.level}
+                  </span>
+                </div>
+                <p>{claimCheckResult.summaryForUser}</p>
+                <p className="muted">
+                  <strong>Support strength:</strong> {claimCheckResult.supportStrength.score} - {claimCheckResult.supportStrength.rationale}
+                </p>
+                {(claimCheckResult.majorConcerns ?? []).map((item: string) => (
+                  <p key={item} className="warning">{item}</p>
+                ))}
+                <p>
+                  <strong>Missing support</strong>
+                </p>
+                {(claimCheckResult.missingSupport ?? []).length ? (
+                  claimCheckResult.missingSupport.map((item: string) => <p key={item} className="warning">{item}</p>)
+                ) : (
+                  <p className="muted">No hard support gap is active in the current check.</p>
+                )}
+                {claimCheckResult.methodologicalConcern ? <p className="warning"><strong>Method concern:</strong> {claimCheckResult.methodologicalConcern}</p> : null}
+                {claimCheckResult.limitationImpact ? <p className="warning"><strong>Limitation impact:</strong> {claimCheckResult.limitationImpact}</p> : null}
+                {(claimCheckResult.recommendedNextActions ?? []).map((item: string) => <p key={item} className="muted">{item}</p>)}
+                <p>
+                  <strong>Evidence references used</strong>
+                </p>
+                {(claimCheckResult.evidenceReferencesUsed ?? []).map((reference: any) => (
+                  <p key={`${reference.objectType}_${reference.objectId}`} className="muted">
+                    {reference.objectType}: {reference.label}{reference.originalFilename ? ` (${reference.originalFilename})` : ""}{reference.linkStatus ? ` - ${reference.linkStatus}` : ""}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">Run the active claim check to see a structured result here.</p>
             )}
           </div>
         </article>
 
         <aside className="card workspace-column workspace-right">
-          <h2>Layer 3: Grounded discussion</h2>
-          <p className="muted">Discuss the project from remembered claim context, not from a free-floating chat prompt.</p>
+          <h2>3. Shared memory</h2>
+          <p className="muted">Claim checks update one shared project memory graph so support can be reused across claims and tensions stay visible.</p>
 
           <div className="workspace-subsection workspace-subsection-first">
-            <h3>Discussion focus</h3>
-            <div className="workspace-inline-status">
-              <button type="button" onClick={() => setDiscussionFocusMode("project")} disabled={discussionFocusMode === "project"}>
-                Project-level
-              </button>
-              <button
-                type="button"
-                onClick={() => setDiscussionFocusMode("claim")}
-                disabled={discussionFocusMode === "claim" || !selectedClaimId}
-              >
-                Claim-level
-              </button>
-              <button
-                type="button"
-                onClick={() => setDiscussionFocusMode("comparison")}
-                disabled={discussionFocusMode === "comparison" || !selectedClaimId || !comparisonClaimId}
-              >
-                Compare claims
-              </button>
-            </div>
-            <label>
-              Primary claim
-              <select value={selectedClaimId} onChange={(event) => setSelectedClaimId(event.target.value)}>
-                <option value="">No claim selected</option>
-                {(memory?.claimAnalyses ?? []).map((analysis) => (
-                  <option key={analysis.claimId} value={analysis.claimId}>
-                    {claimTitle(analysis.claimText)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Comparison claim
-              <select value={comparisonClaimId} onChange={(event) => setComparisonClaimId(event.target.value)}>
-                <option value="">No comparison claim</option>
-                {(memory?.claimAnalyses ?? []).filter((analysis) => analysis.claimId !== selectedClaimId).map((analysis) => (
-                  <option key={analysis.claimId} value={analysis.claimId}>
-                    {claimTitle(analysis.claimText)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {discussionFocusMode === "project" ? (
-              <div className="workspace-object-card">
-                <p>
-                  <strong>Current project focus</strong>
-                </p>
-                <p className="muted">
-                  {memory
-                    ? `${memory.claimAnalyses.length} claims remembered across ${memory.manuscripts.length} manuscript(s).`
-                    : "Digest project memory to enable project-level discussion."}
-                </p>
-                {memory?.unresolvedContradictions.length ? (
-                  <p className="warning">{memory.unresolvedContradictions.length} contradiction signal(s) are available for discussion.</p>
-                ) : null}
-              </div>
-            ) : currentClaimAnalysis ? (
-              <div className="workspace-object-card">
-                <p>
-                  <strong>{discussionFocusMode === "comparison" ? "Primary claim" : "Focused claim"}</strong>
-                </p>
-                <p>{currentClaimAnalysis.claimText}</p>
-                <p className="muted">
-                  Validity: {currentClaimAnalysis.validityAssessment?.scoreBand ?? "pending"} | Trust:{" "}
-                  {currentClaimAnalysis.trustReadiness.lifecycleState.replaceAll("_", " ")}
-                </p>
-                {currentClaimFraming ? (
-                  <p className="muted">
-                    AI framing: {currentClaimFraming.suggestedClaimType} | {currentClaimFraming.suggestedStrengthLevel}
-                  </p>
-                ) : null}
-                <p className="muted">
-                  Support: {currentClaimAnalysis.supportBundle.evidenceIds.length} evidence, {currentClaimAnalysis.supportBundle.methodIds.length} methods,{" "}
-                  {currentClaimAnalysis.supportBundle.limitationIds.length} limitations
-                </p>
-              </div>
-            ) : (
-              <p className="muted">Choose a claim to anchor more specific grounded questions.</p>
-            )}
-            {discussionFocusMode === "comparison" && comparisonClaimAnalysis ? (
-              <div className="workspace-object-card">
-                <p>
-                  <strong>Comparison claim</strong>
-                </p>
-                <p>{comparisonClaimAnalysis.claimText}</p>
-                <p className="muted">
-                  Validity: {comparisonClaimAnalysis.validityAssessment?.scoreBand ?? "pending"} | Trust:{" "}
-                  {comparisonClaimAnalysis.trustReadiness.lifecycleState.replaceAll("_", " ")}
-                </p>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="workspace-subsection">
-            <h3>Ask grounded questions</h3>
-            <label>
-              Discussion engine
-              <select value={discussionMode} onChange={(event) => setDiscussionMode(event.target.value as DiscussionRequestMode)}>
-                <option value="auto">auto (use LLM if configured)</option>
-                <option value="deterministic">deterministic fallback</option>
-                <option value="llm">LLM mode</option>
-              </select>
-            </label>
-            <div className="qa-inline">
-              {suggestedQuestions.map((suggestion) => (
-                <button key={suggestion} type="button" onClick={() => setQuestion(suggestion)}>
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-            <label>
-              Question
-              <textarea value={question} rows={5} onChange={(event) => setQuestion(event.target.value)} />
-            </label>
-            <p className="muted">
-              {discussionFocusMode === "project"
-                ? "This answer will use project-level memory."
-                : discussionFocusMode === "comparison"
-                  ? "This answer will stay anchored to the selected claim pair."
-                  : "This answer will stay anchored to the selected claim."}
-            </p>
+            <h3>Memory digest</h3>
             <button
               type="button"
-              disabled={
-                busyState === "discussion" ||
-                !selectedProjectId ||
-                !question.trim() ||
-                (discussionFocusMode === "claim" && !selectedClaimId) ||
-                (discussionFocusMode === "comparison" && (!selectedClaimId || !comparisonClaimId))
-              }
+              disabled={busyState === "memory" || !selectedProjectId}
               onClick={() =>
-                void withBusy("discussion", async () => {
-                  await submitDiscussion(question);
-                }, "Grounded project discussion refreshed.")
+                void withBusy("memory", async () => {
+                  const payload = await readJson<{ memory: ProjectMemorySummary }>("/api/project-memory", {
+                    method: "POST",
+                    body: JSON.stringify({ projectId: selectedProjectId })
+                  });
+                  setMemory(payload.memory);
+                }, "Project memory refreshed.")
               }
             >
-              {busyState === "discussion" ? "Discussing from memory..." : "Ask from project memory"}
+              {busyState === "memory" ? "Refreshing memory..." : "Refresh project memory"}
             </button>
+            {memory ? (
+              <>
+                <div className="workspace-inline-status">
+                  <span className="pill">{memory.claimAnalyses.length} checked claims</span>
+                  <span className={memory.unresolvedContradictions.length ? "warning" : "pill"}>
+                    {memory.unresolvedContradictions.length} contradiction signal(s)
+                  </span>
+                </div>
+                <div className="workspace-object-card">
+                  <p><strong>Strongest claims</strong></p>
+                  {memory.strongestClaims.slice(0, 3).map((claim: any) => <p key={claim.claimId} className="muted">{claim.scoreBand ?? "unchecked"} {claim.score}: {claimTitle(claim.claimText)}</p>)}
+                </div>
+                <div className="workspace-object-card">
+                  <p><strong>Claims missing support</strong></p>
+                  {memory.claimsMissingSupport.length ? memory.claimsMissingSupport.slice(0, 4).map((item: any) => <p key={item.claimId} className="warning">{claimTitle(item.claimText)} - {item.gaps[0]}</p>) : <p className="muted">No active missing-support flags right now.</p>}
+                </div>
+              </>
+            ) : (
+              <p className="muted">Refresh memory after uploads and claim checks to inspect project-level structure.</p>
+            )}
           </div>
-
           <div className="workspace-subsection">
-            <h3>Grounded answer</h3>
+            <h3>Grounded discussion</h3>
+            <label>
+              Discussion engine
+              <select value={discussionMode} onChange={(event) => setDiscussionMode(event.target.value as DiscussionMode)}>
+                <option value="auto">auto</option>
+                <option value="deterministic">deterministic</option>
+                <option value="llm">llm</option>
+              </select>
+            </label>
+            <label>
+              Question
+              <textarea rows={4} value={discussionQuestion} onChange={(event) => setDiscussionQuestion(event.target.value)} />
+            </label>
+            <button
+              type="button"
+              disabled={busyState === "discussion" || !selectedProjectId || !discussionQuestion.trim()}
+              onClick={() =>
+                void withBusy("discussion", async () => {
+                  if (selectedClaimId) {
+                    const payload = await readJson<{ thread: ClaimDiscussionThread; answer: GroundedDiscussionAnswer }>("/api/claim-discussions", {
+                      method: "POST",
+                      body: JSON.stringify({ claimId: selectedClaimId, question: discussionQuestion, requestedMode: discussionMode })
+                    });
+                    setClaimDiscussionThread(payload.thread);
+                    setDiscussion(payload.answer);
+                  } else {
+                    const payload = await readJson<{ answer: GroundedDiscussionAnswer }>("/api/discussion", {
+                      method: "POST",
+                      body: JSON.stringify({ projectId: selectedProjectId, question: discussionQuestion, requestedMode: discussionMode })
+                    });
+                    setDiscussion(payload.answer);
+                  }
+                }, "Grounded discussion refreshed.")
+              }
+            >
+              {busyState === "discussion" ? "Discussing..." : "Ask from project memory"}
+            </button>
             {discussion ? (
               <div className="workspace-object-card">
-                <p className="pill">{discussion.mode.replaceAll("_", " ")}</p>
-                <p className="muted">
-                  Produced by:{" "}
-                  <strong>
-                    {discussion.sourceMode === "llm_openai_responses_v1" ? "LLM discussion mode" : "deterministic fallback"}
-                  </strong>
-                </p>
+                <p className="muted">Produced by {discussion.sourceMode === "llm_openai_responses_v1" ? "LLM mode" : "deterministic mode"}</p>
                 {discussion.fallbackReason ? <p className="warning">{discussion.fallbackReason}</p> : null}
                 <p>{discussion.answer}</p>
                 <div className="workspace-inline-status">
-                  <span className="pill">focus: {discussion.focus.scope}</span>
-                  <span className="pill">{discussion.referencedClaimIds.length} claim reference(s)</span>
+                  <span className="pill">{discussion.mode.replaceAll("_", " ")}</span>
                   <span className="pill">{discussion.usedMemoryObjectIds.length} memory object(s)</span>
                 </div>
-                {discussion.groundingNotes.length ? (
-                  <>
-                    <p>
-                      <strong>Grounding</strong>
-                    </p>
-                    {discussion.groundingNotes.map((note) => (
-                      <p key={note} className="muted">
-                        {note}
-                      </p>
-                    ))}
-                  </>
-                ) : null}
-                {discussion.groundedContext.claims.length ? (
-                  <>
-                    <p>
-                      <strong>Grounded on</strong>
-                    </p>
-                    {discussion.groundedContext.claims.map((claim) => (
-                      <div key={claim.claimId} className="workspace-object-card">
-                        <p>
-                          <strong>{claimTitle(claim.claimText)}</strong>
-                        </p>
-                        <p className="muted">
-                          {claim.manuscriptTitle} | {claim.validityBand ?? "unassessed"} {claim.validityScore ?? 0} |{" "}
-                          {claim.trustLifecycleState.replaceAll("_", " ")}
-                        </p>
-                        <p className="muted">
-                          Support bundle: {claim.supportCounts.evidence} evidence, {claim.supportCounts.figures} figures, {claim.supportCounts.methods} methods,{" "}
-                          {claim.supportCounts.limitations} limitations, {claim.supportCounts.citations} citations, {claim.supportCounts.notes} notes
-                        </p>
-                        {claim.majorConcerns.slice(0, 2).map((concern) => (
-                          <p key={concern} className="warning">
-                            {concern}
-                          </p>
-                        ))}
-                        {claim.unresolvedSupportGaps.slice(0, 1).map((gap) => (
-                          <p key={gap} className="warning">
-                            {gap}
-                          </p>
-                        ))}
-                      </div>
-                    ))}
-                  </>
-                ) : null}
-                {discussion.groundedContext.memorySignals.length ? (
-                  <>
-                    <p>
-                      <strong>Memory signals</strong>
-                    </p>
-                    {discussion.groundedContext.memorySignals.map((signal) => (
-                      <p key={signal} className="muted">
-                        {signal}
-                      </p>
-                    ))}
-                  </>
-                ) : null}
-                {discussion.groundedContext.contradictions.length ? (
-                  <>
-                    <p>
-                      <strong>Tensions detected</strong>
-                    </p>
-                    {discussion.groundedContext.contradictions.map((item) => (
-                      <p key={`${item.leftClaimId}_${item.rightClaimId}`} className="warning">
-                        {item.reason}
-                      </p>
-                    ))}
-                  </>
-                ) : null}
-                {discussion.suggestedFollowUps.length ? (
-                  <>
-                    <p>
-                      <strong>Suggested next questions</strong>
-                    </p>
-                    {discussion.suggestedFollowUps.map((item) => (
-                      <button
-                        key={item}
-                        type="button"
-                        disabled={busyState === "discussion"}
-                        onClick={() => {
-                          setQuestion(item);
-                          applyDiscussionTurn(discussion);
-                          void withBusy("discussion", async () => {
-                            await submitDiscussion(item);
-                          }, "Grounded follow-up discussion refreshed.");
-                        }}
-                      >
-                        {item}
-                      </button>
-                    ))}
-                  </>
-                ) : null}
+                {(discussion.groundingNotes ?? []).map((item: string) => <p key={item} className="muted">{item}</p>)}
               </div>
             ) : (
-              <p className="muted">Ask a question to see a grounded project-memory response.</p>
+              <p className="muted">Ask why a claim is weak, compare two claim interpretations, or request a conservative rewrite.</p>
             )}
           </div>
 
-          {discussionFocusMode === "claim" && selectedClaimId ? (
-            <div className="workspace-subsection">
-              <h3>Saved claim validity chat</h3>
-              {claimDiscussionThread?.messages.length ? (
-                claimDiscussionThread.messages.map((message) => (
-                  <div key={message.id} className="workspace-object-card">
-                    <p>
-                      <strong>{message.role === "user" ? "You" : "System"}</strong>
-                    </p>
-                    <p>{message.content}</p>
-                    <p className="muted">
-                      {new Date(message.createdAt).toLocaleString()}
-                      {message.sourceMode ? ` | ${message.sourceMode}` : ""}
-                    </p>
-                    {message.fallbackReason ? <p className="warning">{message.fallbackReason}</p> : null}
-                  </div>
-                ))
-              ) : (
-                <p className="muted">No saved claim discussion yet. Ask a claim-level validity question to start a persistent thread for this claim.</p>
-              )}
-            </div>
-          ) : null}
-
           <div className="workspace-subsection">
-            <h3>Discussion continuity</h3>
-            {discussionHistory.length ? (
-              discussionHistory.map((turn) => (
-                <button
-                  key={turn.id}
-                  type="button"
-                  className="workspace-claim-button"
-                  onClick={() => applyDiscussionTurn(turn)}
-                >
-                  <strong>{turn.question}</strong>
-                  <span className="workspace-claim-meta">
-                    <span className="pill">{turn.mode.replaceAll("_", " ")}</span>
-                    <span className="pill">{turn.focus.scope}</span>
-                  </span>
-                  <p className="muted">{new Date(turn.createdAt).toLocaleTimeString()}</p>
-                </button>
+            <h3>Saved claim notebook</h3>
+            {claimDiscussionThread?.messages?.length ? (
+              claimDiscussionThread.messages.slice(-6).map((entry: any) => (
+                <div key={entry.id} className="workspace-object-card">
+                  <p><strong>{entry.role === "user" ? "You" : "System"}</strong></p>
+                  <p>{entry.content}</p>
+                  <p className="muted">{new Date(entry.createdAt).toLocaleString()}{entry.sourceMode ? ` | ${entry.sourceMode}` : ""}</p>
+                </div>
               ))
             ) : (
-              <p className="muted">Your recent grounded questions will stay here so follow-up discussion keeps its claim context.</p>
+              <p className="muted">Claim-level discussion is saved here as a persistent notebook for the active claim.</p>
+            )}
+          </div>
+
+          <div className="workspace-subsection">
+            <h3>Current claim memory</h3>
+            {currentAnalysis ? (
+              <div className="workspace-object-card">
+                <p className="muted">
+                  Support bundle: {currentAnalysis.supportBundle.supportAssetIds.length} support file(s), {currentAnalysis.supportBundle.evidenceIds.length} evidence object(s), {currentAnalysis.supportBundle.figureIds.length} figure(s)
+                </p>
+                {(currentAnalysis.majorConcerns ?? []).map((item: string) => <p key={item} className="warning">{item}</p>)}
+                {(currentAnalysis.unresolvedSupportGaps ?? []).map((item: string) => <p key={item} className="warning">{item}</p>)}
+              </div>
+            ) : (
+              <p className="muted">Run a claim check to populate shared memory for the active claim.</p>
             )}
           </div>
         </aside>

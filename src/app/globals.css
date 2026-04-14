@@ -192,6 +192,14 @@ a {
   margin-top: 0;
 }
 
+.workspace-support-preview {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: block;
+  margin-top: 10px;
+  max-width: 100%;
+}
+
 .workspace-preview {
   max-height: 520px;
 }

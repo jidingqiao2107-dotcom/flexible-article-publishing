@@ -1,4 +1,4 @@
-import { createExport } from "@/persistence/prisma-workflow-store";
+import { createExport } from "@/persistence/runtime-store";
 import { assertNoActorOverride, requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";
 

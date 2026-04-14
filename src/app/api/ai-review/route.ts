@@ -1,4 +1,4 @@
-import { runReview } from "@/persistence/prisma-workflow-store";
+import { runReview } from "@/persistence/runtime-store";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {

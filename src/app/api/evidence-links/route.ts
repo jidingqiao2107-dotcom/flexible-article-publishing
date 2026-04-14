@@ -1,5 +1,5 @@
 import { linkEvidenceInputSchema } from "@/domain/validation";
-import { approveClaimEvidenceLink } from "@/persistence/prisma-workflow-store";
+import { approveClaimEvidenceLink } from "@/persistence/runtime-store";
 import { assertNoActorOverride, requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";
 

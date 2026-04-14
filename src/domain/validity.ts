@@ -6,6 +6,7 @@ import type {
   Figure,
   MethodBlock,
   ResearchObjectGraph,
+  SupportAsset,
   ValidityScoreBand
 } from "./types";
 
@@ -46,6 +47,14 @@ type ClaimSupportSnapshot = {
   citations: Array<{
     id: string;
     title: string;
+    updatedAt?: string;
+    linkStatus: string;
+  }>;
+  supportAssets: Array<{
+    id: string;
+    supportCategory: SupportAsset["supportCategory"];
+    fileType: string;
+    originalFilename: string;
     updatedAt?: string;
     linkStatus: string;
   }>;
@@ -172,6 +181,29 @@ export function buildClaimSupportSnapshot(graph: ResearchObjectGraph, claimId: s
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 
+  const relevantAssetIds = new Set<string>([
+    ...evidence.flatMap((item) =>
+      graph.evidence.find((evidenceItem) => evidenceItem.id === item.id)?.linkedAssetIds ?? []
+    ),
+    ...figures.flatMap((item) =>
+      graph.figures.find((figureItem) => figureItem.id === item.id)?.uploadedAssetIds ?? []
+    )
+  ]);
+
+  const supportAssets = (graph.supportAssets ?? [])
+    .filter((item) => relevantAssetIds.has(item.id))
+    .map((item) => ({
+      id: item.id,
+      supportCategory: item.supportCategory,
+      fileType: item.fileType,
+      originalFilename: item.originalFilename,
+      updatedAt: item.updatedAt,
+      linkStatus:
+        item.claimLinks.find((link) => link.claimId === claim.id)?.status ??
+        (item.linkedClaimIds.includes(claim.id) ? "proposed" : "unlinked")
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+
   return {
     claim: {
       id: claim.id,
@@ -183,7 +215,8 @@ export function buildClaimSupportSnapshot(graph: ResearchObjectGraph, claimId: s
     methods,
     limitations,
     figures,
-    citations
+    citations,
+    supportAssets
   };
 }
 
@@ -235,6 +268,13 @@ export function getClaimValidityStaleness(input: {
 
   if (stableStringify(previous.citations ?? []) !== stableStringify(current.citations)) {
     reasons.push("citation_context_changed");
+    if (freshnessStatus !== "stale") {
+      freshnessStatus = "partially_stale";
+    }
+  }
+
+  if (stableStringify(previous.supportAssets ?? []) !== stableStringify(current.supportAssets)) {
+    reasons.push("support_asset_bundle_changed");
     if (freshnessStatus !== "stale") {
       freshnessStatus = "partially_stale";
     }
@@ -320,7 +360,8 @@ export function assessClaimValidity(input: {
     ...snapshot.methods.map((item) => item.id),
     ...snapshot.limitations.map((item) => item.id),
     ...snapshot.figures.map((item) => item.id),
-    ...snapshot.citations.map((item) => item.id)
+    ...snapshot.citations.map((item) => item.id),
+    ...snapshot.supportAssets.map((item) => item.id)
   ]);
   const basedOnSnapshotRef = createClaimValiditySnapshotRef(snapshot);
 

@@ -1,5 +1,5 @@
 import { claimDiscussionInputSchema } from "@/domain/validation";
-import { askClaimDiscussion, getClaimDiscussionThread } from "@/persistence/prisma-workflow-store";
+import { askClaimDiscussion, getClaimDiscussionThread } from "@/persistence/runtime-store";
 import { requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";
 

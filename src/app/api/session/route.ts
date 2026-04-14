@@ -1,5 +1,5 @@
 import { sessionInputSchema } from "@/domain/validation";
-import { getActorMembershipContext } from "@/persistence/prisma-workflow-store";
+import { getActorMembershipContext } from "@/persistence/runtime-store";
 import {
   buildExpiredSessionCookie,
   buildSessionCookie,

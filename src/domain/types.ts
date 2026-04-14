@@ -32,6 +32,7 @@ export type ClaimType =
 export type StrengthLevel = "weak" | "moderate" | "strong" | "exploratory";
 
 export type LinkStatus = "proposed" | "confirmed" | "rejected";
+export type SupportCategory = "image" | "data" | "text";
 
 export type ReviewSeverity = "info" | "warning" | "blocking";
 export type ValidityScoreBand = "insufficient" | "weak" | "moderate" | "strong" | "high";
@@ -142,6 +143,32 @@ export type Evidence = BaseEntity & {
   linkedClaimIds: EntityId[];
   confidenceNotes?: string;
   provenanceIds: EntityId[];
+};
+
+export type SupportAssetClaimLink = {
+  claimId: EntityId;
+  status: LinkStatus;
+  linkedEntityType: "evidence" | "figure";
+  linkedEntityId: EntityId;
+};
+
+export type SupportAsset = BaseEntity & {
+  type: "support_asset";
+  manuscriptId: EntityId;
+  supportCategory: SupportCategory;
+  fileType: string;
+  originalFilename: string;
+  storageKey: string;
+  publicUrl?: string;
+  sizeBytes: number;
+  contentDigest: string;
+  extractedText?: string;
+  textPreview?: string;
+  linkedClaimIds: EntityId[];
+  claimLinks: SupportAssetClaimLink[];
+  derivedEntityType: "evidence" | "figure";
+  derivedEntityId: EntityId;
+  status: "available" | "removed";
 };
 
 export type Figure = BaseEntity & {
@@ -429,6 +456,7 @@ export type ResearchObjectGraph = {
   sections: Section[];
   claims: Claim[];
   evidence: Evidence[];
+  supportAssets?: SupportAsset[];
   figures: Figure[];
   methods: MethodBlock[];
   citations: Citation[];
@@ -513,6 +541,7 @@ export type ProjectMemoryClaimAnalysis = {
   aiSuggested: boolean;
   supportBundle: {
     evidenceIds: EntityId[];
+    supportAssetIds: EntityId[];
     figureIds: EntityId[];
     methodIds: EntityId[];
     limitationIds: EntityId[];
@@ -524,6 +553,35 @@ export type ProjectMemoryClaimAnalysis = {
   suggestedNextActions: string[];
   validityAssessment?: ClaimValidityAssessment;
   trustReadiness: ClaimTrustReadiness;
+};
+
+export type ClaimCheckResult = {
+  claimId: EntityId;
+  manuscriptId: EntityId;
+  validityAssessment: ClaimValidityAssessment;
+  summaryForUser: string;
+  supportStrength: ClaimValidityDimension;
+  overclaimRisk: {
+    level: "low" | "moderate" | "high";
+    rationale: string;
+  };
+  missingSupport: string[];
+  methodologicalConcern?: string;
+  limitationImpact?: string;
+  recommendedNextActions: string[];
+  majorConcerns: string[];
+  evidenceReferencesUsed: Array<{
+    objectId: EntityId;
+    objectType: "support_asset" | "evidence" | "figure" | "method_block" | "limitation" | "citation";
+    label: string;
+    supportCategory?: SupportCategory;
+    fileType?: string;
+    originalFilename?: string;
+    linkStatus?: LinkStatus;
+  }>;
+  stale: boolean;
+  freshnessStatus: ClaimValidityFreshnessStatus;
+  staleReasons: string[];
 };
 
 export type ProjectMemorySummary = {

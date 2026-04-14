@@ -1,5 +1,5 @@
 import { claimValidityInputSchema } from "@/domain/validation";
-import { assessClaimValidity, listLatestClaimValidityAssessments } from "@/persistence/prisma-workflow-store";
+import { assessClaimValidity, listLatestClaimValidityAssessments } from "@/persistence/runtime-store";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {

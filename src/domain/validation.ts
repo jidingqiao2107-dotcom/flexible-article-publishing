@@ -132,6 +132,18 @@ export const claimValidityInputSchema = z.object({
   claimId: z.string().trim().min(1)
 });
 
+export const claimCheckInputSchema = z.object({
+  manuscriptId: z.string().trim().min(1).optional(),
+  claimId: z.string().trim().min(1)
+});
+
+export const supportMappingInputSchema = z.object({
+  manuscriptId: z.string().trim().min(1).optional(),
+  supportAssetId: z.string().trim().min(1),
+  claimId: z.string().trim().min(1),
+  status: z.enum(["proposed", "confirmed", "rejected"])
+});
+
 export const sectionInputSchema = z.object({
   manuscriptId: z.string().trim().min(1),
   title: z.string().trim().min(1),

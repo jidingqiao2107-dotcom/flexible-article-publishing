@@ -14,7 +14,7 @@ vi.mock("@/server/identity", () => ({
   requireResolvedActor: mocks.requireResolvedActor
 }));
 
-vi.mock("@/persistence/prisma-workflow-store", () => ({
+vi.mock("@/persistence/runtime-store", () => ({
   approveClaim: mocks.approveClaim,
   approveClaimEvidenceLink: mocks.approveClaimEvidenceLink,
   addFinalIntentApproval: mocks.addFinalIntentApproval,

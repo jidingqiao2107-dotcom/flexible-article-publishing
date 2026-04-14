@@ -1,4 +1,4 @@
-import { answerProjectDiscussion } from "@/persistence/prisma-workflow-store";
+import { answerProjectDiscussion } from "@/persistence/runtime-store";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {

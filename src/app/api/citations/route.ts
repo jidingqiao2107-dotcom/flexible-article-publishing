@@ -1,5 +1,5 @@
 import { citationInputSchema } from "@/domain/validation";
-import { createCitation, listCitations } from "@/persistence/prisma-workflow-store";
+import { createCitation, listCitations } from "@/persistence/runtime-store";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {

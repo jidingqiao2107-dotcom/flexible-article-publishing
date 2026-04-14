@@ -1,4 +1,4 @@
-import { getStructuredManuscriptView } from "@/persistence/prisma-workflow-store";
+import { getStructuredManuscriptView } from "@/persistence/runtime-store";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {

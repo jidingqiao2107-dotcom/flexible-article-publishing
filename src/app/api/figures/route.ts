@@ -1,4 +1,4 @@
-import { createFigure, listFigures } from "@/persistence/prisma-workflow-store";
+import { createFigure, listFigures } from "@/persistence/runtime-store";
 import { figureInputSchema } from "@/domain/validation";
 import { requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";

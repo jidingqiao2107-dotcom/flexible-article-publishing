@@ -1,5 +1,5 @@
 import { limitationInputSchema } from "@/domain/validation";
-import { createLimitation, listLimitations } from "@/persistence/prisma-workflow-store";
+import { createLimitation, listLimitations } from "@/persistence/runtime-store";
 import { requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";
 

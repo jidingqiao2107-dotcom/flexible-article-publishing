@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "demo": "cross-env ROUTE_A_PREVIEW_MODE=demo NEXT_PUBLIC_ROUTE_A_PREVIEW_MODE=demo next dev",
     "postinstall": "node scripts/with-local-env.mjs prisma generate",
     "build": "next build",
     "start": "next start",

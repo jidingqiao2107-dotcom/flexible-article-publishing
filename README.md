@@ -61,6 +61,32 @@ If `package-lock.json` must be regenerated after dependency changes, use:
 npm install --package-lock-only
 ```
 
+## Founder Preview Mode
+
+Use this when you want to inspect the current product UI without Docker or PostgreSQL.
+
+Start the preview:
+
+```bash
+npm run demo
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Preview mode characteristics:
+
+- uses seeded in-memory demo data
+- opens the real product UI and routes
+- does not require Docker
+- does not require PostgreSQL
+- clearly labels the app as founder preview mode
+
+Preview mode is only for appearance review, manual flow inspection, and light interaction testing. It does not replace the real Prisma/PostgreSQL validation path.
+
 ## Persistence Validation
 
 Start a disposable PostgreSQL test database with Docker Compose:

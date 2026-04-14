@@ -12,7 +12,7 @@ import {
   approveClaimMethodLink,
   approveClaim,
   markClaimPublicationReady
-} from "@/persistence/prisma-workflow-store";
+} from "@/persistence/runtime-store";
 import { assertNoActorOverride, requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";
 

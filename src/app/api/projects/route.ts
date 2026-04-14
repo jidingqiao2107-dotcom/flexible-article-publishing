@@ -1,4 +1,4 @@
-import { createProject, listProjects } from "@/persistence/prisma-workflow-store";
+import { createProject, listProjects } from "@/persistence/runtime-store";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 

@@ -1,8 +1,11 @@
 import crypto from "node:crypto";
 import type { Actor } from "@/domain/types";
+import { findDemoAuthorById, getDefaultPreviewActor } from "@/persistence/demo-store";
 import { prisma } from "@/persistence/prisma-client";
+import { isPreviewMode } from "@/server/runtime-mode";
 
 export const SESSION_COOKIE_NAME = "route_a_session";
+const previewSessions = new Map<string, { authorId: string; revokedAt?: string }>();
 
 export class IdentityError extends Error {
   constructor(message: string) {
@@ -24,6 +27,26 @@ export function getSessionTokenFromRequest(request: Request): string | undefined
 }
 
 export async function createDevelopmentSession(input: { authorId: string; label?: string }) {
+  if (isPreviewMode()) {
+    const author = await findDemoAuthorById(input.authorId);
+
+    if (!author) {
+      throw new IdentityError(`Author ${input.authorId} was not found.`);
+    }
+
+    const token = crypto.randomBytes(24).toString("hex");
+    previewSessions.set(token, { authorId: author.id });
+    return {
+      token,
+      sessionId: `preview_session_${token.slice(0, 8)}`,
+      actor: {
+        id: author.id,
+        type: "human_author" as const,
+        displayName: author.displayName
+      }
+    };
+  }
+
   const author = await prisma.author.findUnique({
     where: { id: input.authorId }
   });
@@ -53,6 +76,13 @@ export async function createDevelopmentSession(input: { authorId: string; label?
 }
 
 export async function clearSessionByToken(token?: string) {
+  if (isPreviewMode()) {
+    if (token) {
+      previewSessions.delete(token);
+    }
+    return;
+  }
+
   if (!token) return;
 
   await prisma.actorSession.updateMany({
@@ -67,6 +97,26 @@ export async function clearSessionByToken(token?: string) {
 }
 
 export async function resolveActorFromRequest(request: Request): Promise<Actor | null> {
+  if (isPreviewMode()) {
+    const token = getSessionTokenFromRequest(request);
+
+    if (token) {
+      const session = previewSessions.get(token);
+      if (session) {
+        const author = await findDemoAuthorById(session.authorId);
+        if (author) {
+          return {
+            id: author.id,
+            type: "human_author",
+            displayName: author.displayName
+          };
+        }
+      }
+    }
+
+    return getDefaultPreviewActor();
+  }
+
   const token = getSessionTokenFromRequest(request);
 
   if (!token) return null;

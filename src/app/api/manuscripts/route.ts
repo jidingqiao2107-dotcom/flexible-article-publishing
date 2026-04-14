@@ -1,7 +1,7 @@
 import { getExportReadiness } from "@/domain/policies";
 import { manuscriptInputSchema } from "@/domain/validation";
 import { getManuscriptTrustReadiness } from "@/domain/trust";
-import { createManuscript, getResearchObjectGraph, listManuscripts } from "@/persistence/prisma-workflow-store";
+import { createManuscript, getResearchObjectGraph, listManuscripts } from "@/persistence/runtime-store";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -25,6 +25,7 @@ export async function GET(request: Request) {
       sections: graph.sections,
       claims: graph.claims,
       evidence: graph.evidence,
+      supportAssets: graph.supportAssets,
       figures: graph.figures,
       methods: graph.methods,
       citations: graph.citations,

@@ -1,5 +1,5 @@
 import { claimSectionPlacementInputSchema, sectionInputSchema } from "@/domain/validation";
-import { createSection, getResearchObjectGraph, updateClaimSectionPlacement } from "@/persistence/prisma-workflow-store";
+import { createSection, getResearchObjectGraph, updateClaimSectionPlacement } from "@/persistence/runtime-store";
 import { requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";
 

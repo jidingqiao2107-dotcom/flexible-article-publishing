@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   requireResolvedActor: vi.fn()
 }));
 
-vi.mock("@/persistence/prisma-workflow-store", () => ({
+vi.mock("@/persistence/runtime-store", () => ({
   getActorMembershipContext: mocks.getActorMembershipContext
 }));
 

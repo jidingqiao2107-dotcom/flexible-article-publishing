@@ -1,4 +1,4 @@
-import { createClaim, listClaims, updateClaim } from "@/persistence/prisma-workflow-store";
+import { createClaim, listClaims, updateClaim } from "@/persistence/runtime-store";
 import { claimInputSchema, claimUpdateInputSchema } from "@/domain/validation";
 import { requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";

@@ -1,5 +1,5 @@
 import { authorInputSchema } from "@/domain/validation";
-import { createAuthor, listAuthors } from "@/persistence/prisma-workflow-store";
+import { createAuthor, listAuthors } from "@/persistence/runtime-store";
 import { requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";
 

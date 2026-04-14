@@ -1,5 +1,5 @@
 import { methodBlockInputSchema } from "@/domain/validation";
-import { createMethodBlock, listMethods } from "@/persistence/prisma-workflow-store";
+import { createMethodBlock, listMethods } from "@/persistence/runtime-store";
 import { requireResolvedActor } from "@/server/identity";
 import { NextResponse } from "next/server";
 

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GPT-5.4 Chatbox</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">Tiny local demo</p>
+        <h1>GPT-5.4 behind a simple chatbox</h1>
+        <p class="hero-copy">
+          A lightweight browser UI that sends your messages to OpenAI's Responses API.
+        </p>
+        <div class="hero-meta">
+          <span id="model-badge" class="pill">Model: loading...</span>
+          <span id="status-badge" class="pill pill-muted">Checking setup...</span>
+          <button id="clear-button" class="ghost-button" type="button">Clear chat</button>
+        </div>
+      </section>
+
+      <section class="chat-panel">
+        <div id="messages" class="messages" aria-live="polite"></div>
+
+        <form id="chat-form" class="composer">
+          <label class="sr-only" for="prompt-input">Message</label>
+          <textarea
+            id="prompt-input"
+            name="prompt"
+            rows="3"
+            placeholder="Ask something..."
+            maxlength="5000"
+          ></textarea>
+          <div class="composer-actions">
+            <p class="composer-hint">Press Enter to send. Use Shift+Enter for a new line.</p>
+            <button id="send-button" class="send-button" type="submit">Send</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
